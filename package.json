@@ -4,5 +4,8 @@
     "react-dom": "^19.0.0",
     "react-router-dom": "^6.21.1",
     "web-vitals": "^4.2.4"
+  },
+  "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11"
   }
 }
