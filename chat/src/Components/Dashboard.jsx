@@ -1,27 +1,67 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { RiLogoutBoxRLine } from "react-icons/ri";
 import { IoSettingsOutline } from "react-icons/io5";
-import { FiSearch } from "react-icons/fi";
+import { FiSearch, FiMenu } from "react-icons/fi";
 import { FaCaretDown } from "react-icons/fa";
 import { BsArrowRight } from "react-icons/bs";
 import { BiUser } from "react-icons/bi";
 import { GiThink } from "react-icons/gi";
+import { IoMdClose } from "react-icons/io";
 
 const Dashboard = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleLogout = () => {
     navigate('/');
   };
 
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
   return (
-    <div className="flex h-screen bg-white">
+    <div className="flex h-screen bg-white relative">
+      {/* Mobile Menu Button - Hidden when sidebar is open */}
+      <button 
+        onClick={toggleSidebar}
+        className={`
+          lg:hidden fixed top-5 left-40 z-50 bg-[#008D9C] text-white p-1 rounded-lg 
+          hover:bg-[#007483] transition-all duration-300
+          ${isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}
+        `}
+      >
+        <FiMenu className="h-6 w-6" />
+      </button>
+
+      {/* Overlay for mobile */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+          onClick={toggleSidebar}
+        />
+      )}
+
       {/* Left Sidebar */}
-      <div className="w-64 bg-white border-r flex flex-col">
-        <div className="p-4 flex-1">
-          <h1 className="text-xl text-center font-bold text-[#008D9C] mb-10">CHATTING</h1>
+      <div 
+        className={`
+          fixed lg:static w-[280px] bg-white border-r flex flex-col h-full z-40
+          transform transition-transform duration-300 ease-in-out
+          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}
+      >
+        {/* Close button for mobile */}
+        <button 
+          onClick={toggleSidebar}
+          className="lg:hidden absolute top-4 right-4 text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100"
+        >
+          <IoMdClose className="h-6 w-6" />
+        </button>
+
+        <div className="p-4 flex-1 overflow-y-auto">
+          <h1 className="text-xl text-center font-bold text-[#008D9C] mb-10 mt-4">CHATTING</h1>
           
           <div className="flex justify-center">
             <button className="w-full mt-2 bg-gradient-to-r from-[#008D9C] to-[#003136] text-white py-2 px-3 rounded-lg hover:opacity-90 transition-opacity">
@@ -32,7 +72,7 @@ const Dashboard = () => {
             </button>
           </div>
 
-          <button className="w-full text-black mt-6 py-2 px-3 rounded-lg flex items-center justify-center">
+          <button className="w-full text-black mt-6 py-2 px-3 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors">
             <div className="flex items-center justify-center gap-2">
               <IoSettingsOutline className="h-5 w-5" />
               <span>Settings</span>
@@ -45,19 +85,23 @@ const Dashboard = () => {
             <h2 className="text-sm font-medium text-center text-black mt-3">History</h2>
             
             <div className="space-y-2 mt-3">
-              <div className="text-sm text-[#008D9C]">Previous 7 Days</div>
-              <div className="text-sm text-gray-400">Hi, how are you...</div>
+              <div className="p-2 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
+                <div className="text-sm text-[#008D9C]">Previous 7 Days</div>
+                <div className="text-sm text-gray-400">Hi, how are you...</div>
+              </div>
             </div>
             
             <div className="mt-4">
-              <div className="text-sm text-gray-500">Previous 30 Days</div>
-              <div className="text-sm text-gray-400">Lorem ipsum dolor sit adipiscing...</div>
+              <div className="p-2 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
+                <div className="text-sm text-gray-500">Previous 30 Days</div>
+                <div className="text-sm text-gray-400">Lorem ipsum dolor sit adipiscing...</div>
+              </div>
             </div>
           </div>
         </div>
         
         {/* Logout Button */}
-        <div className="p-4 mb-3">
+        <div className="p-4 border-t">
           <button 
             onClick={handleLogout}
             className="w-full bg-gradient-to-r from-[#008D9C] to-[#003136] text-white py-2 px-3 rounded-lg hover:opacity-90 transition-opacity"
@@ -73,7 +117,7 @@ const Dashboard = () => {
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col bg-[#F4F4F4]">
         {/* Chat Header with Dropdown */}
-        <div className="border-b border-t border-[#008D9C] mt-3 p-2 flex justify-between ml-10 mr-10 items-center relative">
+        <div className="border-b border-t border-[#008D9C] mt-3 p-2 flex justify-between mx-5 items-center relative">
           <h2 className="text-1xl font-semibold text-[#008D9C]">CHATTING</h2>
           <div className="flex items-center">
             <div className="relative">
@@ -137,12 +181,12 @@ const Dashboard = () => {
         </div>
 
         {/* Message Input */}
-        <div className="p-4">
+        <div className="p-4 pt-0">
           <div className="flex items-center space-x-2 border-[#008D9C] rounded-lg bg-[#F4F4F4]">
             <input
               type="text"
               placeholder="Start Chatting"
-              className="flex-1 bg-[#F4F4F4] px-4 py-4 border-[#008D9C] border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008D9C]"
+              className="flex-1 bg-[#F4F4F4] p-3 border-[#008D9C] border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008D9C]"
             />
             <button className="bg-[#008D9C] absolute right-7 text-white p-2 rounded-lg">
               <BsArrowRight className="h-6 w-6" />
