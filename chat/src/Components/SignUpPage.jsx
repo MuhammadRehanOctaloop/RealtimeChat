@@ -48,7 +48,7 @@ const SignUpDesign = () => {
                     <form onSubmit={handleSignUp}>
                         {/* Name Input */}
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-black mb-1">Name</label>
+                            <label className="block text-sm text-left font-medium text-black mb-1">Name</label>
                             <div className="relative">
                                 <BiUser className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
                                 <input
@@ -61,7 +61,7 @@ const SignUpDesign = () => {
 
                         {/* Email Input */}
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-black mb-1">Email</label>
+                            <label className="block text-sm text-left font-medium text-black mb-1">Email</label>
                             <div className="relative">
                                 <MdEmail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
                                 <input
@@ -74,7 +74,7 @@ const SignUpDesign = () => {
 
                         {/* Password Input */}
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-black mb-1">Password</label>
+                            <label className="block text-sm text-left font-medium text-black mb-1">Password</label>
                             <div className="relative">
                                 <RiLockPasswordLine className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
                                 <input

@@ -49,7 +49,7 @@ const SignInDesign = () => {
 
             {/* Email Input */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-black mb-1">Email</label>
+              <label className="block text-sm text-left font-medium text-black mb-1">Email</label>
               <div className="relative">
                 <MdEmail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
                 <input
@@ -62,7 +62,7 @@ const SignInDesign = () => {
 
             {/* Password Input */}
             <div className="mb-4"> 
-              <label className="flex justify-between items-center text-sm font-medium text-black mb-1">
+              <label className="flex justify-between items-center text-sm text-left font-medium text-black mb-1">
                 Password
                 <a href="#" className="text-gray-500 text-sm hover:underline">
                 Forgot password?

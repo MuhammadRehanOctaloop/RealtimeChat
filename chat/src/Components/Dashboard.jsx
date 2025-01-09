@@ -47,7 +47,7 @@ const Dashboard = () => {
       {/* Left Sidebar */}
       <div 
         className={`
-          fixed lg:static w-[280px] bg-white border-r flex flex-col h-full z-40
+          fixed lg:static w-[250px] bg-white border-r flex flex-col h-full z-40
           transform transition-transform duration-300 ease-in-out
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
@@ -55,7 +55,7 @@ const Dashboard = () => {
         {/* Close button for mobile */}
         <button 
           onClick={toggleSidebar}
-          className="lg:hidden absolute top-4 right-4 text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100"
+          className="lg:hidden absolute pl-2 pr-2 top-4 right-4 text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100"
         >
           <IoMdClose className="h-6 w-6" />
         </button>
@@ -63,7 +63,7 @@ const Dashboard = () => {
         <div className="p-4 flex-1 overflow-y-auto">
           <h1 className="text-xl text-center font-bold text-[#008D9C] mb-10 mt-4">CHATTING</h1>
           
-          <div className="flex justify-center">
+          <div className="flex justify-center ml-2 mr-2">
             <button className="w-full mt-2 bg-gradient-to-r from-[#008D9C] to-[#003136] text-white py-2 px-3 rounded-lg hover:opacity-90 transition-opacity">
               <div className="flex items-center justify-center gap-2">
                 <GiThink className="h-5 w-5" />
@@ -85,14 +85,14 @@ const Dashboard = () => {
             <h2 className="text-sm font-medium text-center text-black mt-3">History</h2>
             
             <div className="space-y-2 mt-3">
-              <div className="p-2 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
+              <div className="rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
                 <div className="text-sm text-[#008D9C]">Previous 7 Days</div>
                 <div className="text-sm text-gray-400">Hi, how are you...</div>
               </div>
             </div>
             
             <div className="mt-4">
-              <div className="p-2 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
+              <div className="rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
                 <div className="text-sm text-gray-500">Previous 30 Days</div>
                 <div className="text-sm text-gray-400">Lorem ipsum dolor sit adipiscing...</div>
               </div>
@@ -101,7 +101,7 @@ const Dashboard = () => {
         </div>
         
         {/* Logout Button */}
-        <div className="p-4 border-t">
+        <div className="pl-6 p-4 pr-6">
           <button 
             onClick={handleLogout}
             className="w-full bg-gradient-to-r from-[#008D9C] to-[#003136] text-white py-2 px-3 rounded-lg hover:opacity-90 transition-opacity"
