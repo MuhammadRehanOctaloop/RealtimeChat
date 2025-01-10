@@ -28,7 +28,7 @@ const Dashboard = () => {
       <button 
         onClick={toggleSidebar}
         className={`
-          lg:hidden fixed top-5 left-40 z-50 bg-[#008D9C] text-white p-1 rounded-lg 
+          lg:hidden absolute top-5 left-40 z-50 bg-[#008D9C] text-white p-1 rounded-lg 
           hover:bg-[#007483] transition-all duration-300
           ${isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}
         `}
@@ -86,15 +86,15 @@ const Dashboard = () => {
             
             <div className="space-y-2 mt-3">
               <div className="rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
-                <div className="text-sm text-[#008D9C]">Previous 7 Days</div>
-                <div className="text-sm text-gray-400">Hi, how are you...</div>
+                <div className="text-sm text-left text-[#008D9C]">Previous 7 Days</div>
+                <div className="text-sm text-left text-gray-400">Hi, how are you...</div>
               </div>
             </div>
             
             <div className="mt-4">
               <div className="rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
-                <div className="text-sm text-gray-500">Previous 30 Days</div>
-                <div className="text-sm text-gray-400">Lorem ipsum dolor sit adipiscing...</div>
+                <div className="text-sm text-left text-gray-500">Previous 30 Days</div>
+                <div className="text-sm text-left text-gray-400">Lorem ipsum dolor sit adipiscing...</div>
               </div>
             </div>
           </div>
@@ -165,14 +165,14 @@ const Dashboard = () => {
         <div className="flex-1 flex flex-col justify-end">
           <div className="overflow-y-auto p-4 space-y-4">
             <div className="flex flex-col justify-end space-y-4">
-              <div className="flex items-start space-x-2">
+              <div className="flex text-left items-start space-x-2">
                 <div className="bg-[#008D9C] rounded-lg p-3 max-w-md">
-                  <p className="text-white">Hi, how are you?</p>
+                  <p className="text-white text-left">Hi, how are you?</p>
                 </div>
               </div>
               
-              <div className="flex items-start space-x-2">
-                <div className="bg-[#E8E8E8] text-black rounded-lg p-3 max-w-md">
+              <div className="flex text-left items-start space-x-2">
+                <div className="bg-[#E8E8E8] text-left text-black text-left rounded-lg p-3 max-w-md">
                   <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
                 </div>
               </div>
