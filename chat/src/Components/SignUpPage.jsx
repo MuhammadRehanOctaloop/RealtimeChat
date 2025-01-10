@@ -1,5 +1,5 @@
-import React from "react";
-import { Link} from "react-router-dom";
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { MdEmail } from "react-icons/md";
 import { RiLockPasswordLine } from "react-icons/ri";
 import { FcGoogle } from "react-icons/fc";
@@ -7,9 +7,58 @@ import { BsMicrosoft } from "react-icons/bs";
 import { BiUser } from "react-icons/bi";
 
 const SignUpDesign = () => {
+    const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        password: ''
+    });
+    const [errors, setErrors] = useState({});
+
+    const handleInputChange = (e) => {
+        const { id, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [id]: value
+        }));
+        // Clear error when typing
+        if (errors[id]) {
+            setErrors(prev => ({
+                ...prev,
+                [id]: ''
+            }));
+        }
+    };
 
     const handleSignUp = (e) => {
         e.preventDefault();
+        const newErrors = {};
+
+        // Name validation (letters only, 2-30 characters)
+        const nameRegex = /^[A-Za-z\s]{2,30}$/;
+        if (!formData.name || !nameRegex.test(formData.name)) {
+            newErrors.name = 'Name should be 2-30 characters, letters only';
+        }
+
+        // Email validation
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (!formData.email || !emailRegex.test(formData.email)) {
+            newErrors.email = 'Please enter a valid email address';
+        }
+
+        // Password validation (min 8 chars, 1 uppercase, 1 lowercase, 1 number)
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
+        if (!formData.password || !passwordRegex.test(formData.password)) {
+            newErrors.password = 'Password must be at least 8 characters with uppercase, lowercase and number';
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+
+        // If validation passes, proceed with signup
+        console.log('Form submitted:', formData);
+        // Add your signup logic here
     };
 
     return (
@@ -53,10 +102,14 @@ const SignUpDesign = () => {
                                 <BiUser className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
                                 <input
                                     type="text"
+                                    id="name"
+                                    value={formData.name}
+                                    onChange={handleInputChange}
                                     placeholder="Enter your name"
-                                    className="w-full pl-10 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008D9C]"
+                                    className={`w-full pl-10 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008D9C] ${errors.name ? 'border-red-500' : ''}`}
                                 />
                             </div>
+                            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
                         </div>
 
                         {/* Email Input */}
@@ -66,10 +119,14 @@ const SignUpDesign = () => {
                                 <MdEmail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
                                 <input
                                     type="email"
+                                    id="email"
+                                    value={formData.email}
+                                    onChange={handleInputChange}
                                     placeholder="Enter your email"
-                                    className="w-full pl-10 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008D9C]"
+                                    className={`w-full pl-10 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008D9C] ${errors.email ? 'border-red-500' : ''}`}
                                 />
                             </div>
+                            {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
                         </div>
 
                         {/* Password Input */}
@@ -79,10 +136,14 @@ const SignUpDesign = () => {
                                 <RiLockPasswordLine className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
                                 <input
                                     type="password"
+                                    id="password"
+                                    value={formData.password}
+                                    onChange={handleInputChange}
                                     placeholder="Enter your password"
-                                    className="w-full pl-10 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008D9C]"
+                                    className={`w-full pl-10 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008D9C] ${errors.password ? 'border-red-500' : ''}`}
                                 />
                             </div>
+                            {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
                         </div>
 
                         {/* Submit Button */}
