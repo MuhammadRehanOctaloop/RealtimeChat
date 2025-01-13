@@ -1,12 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { RiLogoutBoxRLine } from "react-icons/ri";
-import { IoSettingsOutline } from "react-icons/io5";
 import { FiSearch, FiMenu } from "react-icons/fi";
 import { FaCaretDown } from "react-icons/fa";
 import { BsArrowRight } from "react-icons/bs";
 import { BiUser } from "react-icons/bi";
-import { GiThink } from "react-icons/gi";
+import { IoNotificationsOutline } from "react-icons/io5";
 import { IoMdClose } from "react-icons/io";
 
 const Dashboard = () => {
@@ -64,37 +63,47 @@ const Dashboard = () => {
           <h1 className="text-xl text-center font-bold text-[#008D9C] mb-10 mt-4">CHATTING</h1>
           
           <div className="flex justify-center ml-2 mr-2">
-            <button className="w-full mt-2 bg-gradient-to-r from-[#008D9C] to-[#003136] text-white py-2 px-3 rounded-lg hover:opacity-90 transition-opacity">
+            <button className="w-full mt-2 bg-gradient-to-r from-[#008D9C] to-[#003136] text-white py-2 px-3 rounded-lg hover:opacity-90 transition-opacity relative">
               <div className="flex items-center justify-center gap-2">
-                <GiThink className="h-5 w-5" />
-                <span>New Chat</span>
+                <IoNotificationsOutline className="h-5 w-5" />
+                <span>Notifications</span>
+                <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                  3
+                </div>
               </div>
             </button>
           </div>
 
-          <button className="w-full text-black mt-6 py-2 px-3 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors">
-            <div className="flex items-center justify-center gap-2">
-              <IoSettingsOutline className="h-5 w-5" />
-              <span>Settings</span>
-            </div>
-          </button>
-
           {/* Chat History */}
           <div className="mt-6">
             <hr className="border-t-2 border-[#008D9C]" />
-            <h2 className="text-sm font-medium text-center text-black mt-3">History</h2>
+            <h2 className="text-sm font-medium text-center text-black mt-3">Friends</h2>
             
             <div className="space-y-2 mt-3">
-              <div className="rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
-                <div className="text-sm text-left text-[#008D9C]">Previous 7 Days</div>
-                <div className="text-sm text-left text-gray-400">Hi, how are you...</div>
+              {/* Friend Item */}
+              <div className="p-2 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-[#008D9C] rounded-full flex items-center justify-center">
+                    <BiUser className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-[#008D9C]">John Doe</div>
+                    <div className="text-xs text-gray-400">Online</div>
+                  </div>
+                </div>
               </div>
-            </div>
-            
-            <div className="mt-4">
-              <div className="rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
-                <div className="text-sm text-left text-gray-500">Previous 30 Days</div>
-                <div className="text-sm text-left text-gray-400">Lorem ipsum dolor sit adipiscing...</div>
+
+              {/* Another Friend Item */}
+              <div className="p-2 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-[#008D9C] rounded-full flex items-center justify-center">
+                    <BiUser className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-gray-500">Jane Smith</div>
+                    <div className="text-xs text-gray-400">Offline</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
