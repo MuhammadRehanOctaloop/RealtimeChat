@@ -38,10 +38,10 @@ const SignInDesign = () => {
             newErrors.email = 'Please enter a valid email address';
         }
 
-        // Password validation
-        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
+        // Updated password validation to allow special characters
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>])[A-Za-z\d!@#$%^&*(),.?":{}|<>]{8,}$/;
         if (!formData.password || !passwordRegex.test(formData.password)) {
-            newErrors.password = 'Password must be at least 8 characters with uppercase, lowercase and number';
+            newErrors.password = 'Password must be at least 8 characters with uppercase, lowercase, number and special character';
         }
 
         if (Object.keys(newErrors).length > 0) {
