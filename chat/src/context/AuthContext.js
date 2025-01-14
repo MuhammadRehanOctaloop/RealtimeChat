@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (username, email, password) => {
         try {
-            const response = await api.post('/auth/register', {
+            const response = await api.post('/api/v1/auth/register', {
                 username,
                 email,
                 password
@@ -40,7 +40,7 @@ export const AuthProvider = ({ children }) => {
     const login = async (email, password) => {
         try {
             console.log('Attempting login with:', { email, password });
-            const response = await api.post('/auth/login', {
+            const response = await api.post('/api/v1/auth/login', {
                 email,
                 password
             });
@@ -69,7 +69,7 @@ export const AuthProvider = ({ children }) => {
 
     const logout = async () => {
         try {
-            await api.post('/auth/logout');
+            await api.post('/api/v1/auth/logout');
         } catch (error) {
             console.error('Logout error:', error);
         } finally {

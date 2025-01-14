@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:3001/api/v1';
+const API_BASE_URL = 'http://localhost:3001';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -44,7 +44,7 @@ api.interceptors.response.use(
                     throw new Error('No refresh token available');
                 }
 
-                const response = await api.post('/auth/refresh-token', {
+                const response = await api.post('/api/v1/auth/refresh-token', {
                     refreshToken
                 });
                 

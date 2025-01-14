@@ -60,7 +60,7 @@ const SignInDesign = () => {
         } catch (error) {
             console.error('Login error in component:', error); // Debug log
             setErrors({
-                general: error.message || 'Login failed. Please check your credentials.'
+                general: error.response?.data?.message || error.message || 'Login failed. Please check your credentials.'
             });
         } finally {
             setLoading(false);
