@@ -36,6 +36,8 @@ const Dashboard = () => {
   const [friendRequests, setFriendRequests] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationsRef = useRef(null);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notificationsError, setNotificationsError] = useState(null);
 
   // Add notification handler
   const handleNotification = (notification) => {
@@ -45,7 +47,40 @@ const Dashboard = () => {
 
   // Initialize WebSocket connection
   useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        setNotificationsLoading(true);
+        setNotificationsError(null);
+        console.log('Fetching notifications...');
+        
+        const allNotifications = await notificationService.getAllNotifications();
+        console.log('Received notifications:', allNotifications);
+        setNotifications(allNotifications);
+        
+        const unreadNotifications = await notificationService.getUnreadNotifications();
+        console.log('Unread notifications:', unreadNotifications);
+        setUnreadNotifications(unreadNotifications.length);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+        setNotificationsError('Failed to load notifications');
+        setNotifications([]);
+      } finally {
+        setNotificationsLoading(false);
+      }
+    };
+
+    fetchNotifications();
+    // Set up interval to periodically fetch notifications
+    const interval = setInterval(fetchNotifications, 30000);
+
     const socket = socketService.connect(localStorage.getItem('accessToken'));
+
+    // Update socket notification handler
+    socketService.onNotification((data) => {
+      console.log('Received notification via socket:', data);
+      setNotifications(prev => [data, ...prev]);
+      setUnreadNotifications(prev => prev + 1);
+    });
 
     socketService.onMessage((message) => {
       if (selectedFriend?._id === message.sender) {
@@ -63,11 +98,6 @@ const Dashboard = () => {
       setFriends(prev => prev.map(friend => 
         friend._id === userId ? { ...friend, online } : friend
       ));
-    });
-
-    socketService.onNotification((notification) => {
-      setNotifications(prev => [notification, ...prev]);
-      setUnreadNotifications(prev => prev + 1);
     });
 
     // Listen for friend requests
@@ -106,7 +136,10 @@ const Dashboard = () => {
       setFriendRequests(prev => prev.filter(req => req._id !== requestId));
     });
 
-    return () => socketService.disconnect();
+    return () => {
+      socketService.disconnect();
+      clearInterval(interval);
+    };
   }, []);
 
   // Handle friend selection
@@ -297,6 +330,31 @@ const Dashboard = () => {
     }
   };
 
+  // Add function to mark all as read
+  const handleMarkAllAsRead = async () => {
+    try {
+      await notificationService.markAllAsRead();
+      setNotifications(prev => prev.map(notif => ({ ...notif, read: true })));
+      setUnreadNotifications(0);
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
+  };
+
+  // Add function to delete notification
+  const handleDeleteNotification = async (notificationId) => {
+    try {
+      await notificationService.deleteNotification(notificationId);
+      setNotifications(prev => prev.filter(notif => notif._id !== notificationId));
+      // Update unread count if needed
+      setUnreadNotifications(prev => 
+        notifications.find(n => n._id === notificationId && !n.read) ? prev - 1 : prev
+      );
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+    }
+  };
+
   // Add click outside handler for notifications
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -375,6 +433,8 @@ const Dashboard = () => {
                   onAccept={handleAcceptFriendRequest}
                   onDecline={handleDeclineFriendRequest}
                   onMarkAsRead={handleMarkAsRead}
+                  loading={notificationsLoading}
+                  error={notificationsError}
                 />
               </div>
             )}
