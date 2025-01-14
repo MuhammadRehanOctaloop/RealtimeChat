@@ -30,11 +30,21 @@ export const socketService = {
 
     // Friend events
     onFriendRequest: (callback) => {
-        if (socket) socket.on('friend_request', callback);
+        console.log('Setting up friend request listener');
+        if (socket) {
+            socket.on('friend_request', (data) => {
+                console.log('Received friend request via socket:', data);
+                callback(data);
+            });
+        }
     },
 
     onFriendRequestAccepted: (callback) => {
         if (socket) socket.on('friend_request_accepted', callback);
+    },
+
+    onFriendRequestDeclined: (callback) => {
+        if (socket) socket.on('friend_request_declined', callback);
     },
 
     onFriendStatusChange: (callback) => {
@@ -61,5 +71,13 @@ export const socketService = {
 
     emitFriendRequestResponse: (requestId, accepted) => {
         if (socket) socket.emit('friend_request_response', { requestId, accepted });
+    },
+
+    emitStopTyping: (recipientId) => {
+        if (socket) socket.emit('stopTyping', { recipientId });
+    },
+
+    emitNotificationRead: (notificationId) => {
+        if (socket) socket.emit('notificationRead', { notificationId });
     }
 }; 

@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { RiLogoutBoxRLine } from "react-icons/ri";
-import { FiSearch, FiMenu } from "react-icons/fi";
-import { FaCaretDown } from "react-icons/fa";
+import { FiMenu } from "react-icons/fi";
 import { BsArrowRight } from "react-icons/bs";
 import { BiUser } from "react-icons/bi";
 import { IoNotificationsOutline } from "react-icons/io5";
 import { IoMdClose } from "react-icons/io";
+import NavBar from './NavBar';
 import { friendService } from '../services/friendService';
 import { useAuth } from '../context/AuthContext';
 import { socketService } from '../services/socketService';
 import { messageService } from '../services/messageService';
 import api from '../services/api';
+import { notificationService } from '../services/notificationService';
+import Notifications from './Notifications';
 
 const Dashboard = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -32,6 +34,14 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [error, setError] = useState(null);
   const [friendRequests, setFriendRequests] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notificationsRef = useRef(null);
+
+  // Add notification handler
+  const handleNotification = (notification) => {
+    setNotifications(prev => [notification, ...prev]);
+    setUnreadNotifications(prev => prev + 1);
+  };
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -62,8 +72,27 @@ const Dashboard = () => {
 
     // Listen for friend requests
     socketService.onFriendRequest((data) => {
-      setFriendRequests(prev => [...prev, data]);
-      // You can add a notification here
+      console.log('Received friend request via socket:', data);
+      setFriendRequests(prev => {
+        const exists = prev.some(req => 
+          req._id === data._id || 
+          (req.sender._id === data.sender._id && req.recipient._id === data.recipient._id)
+        );
+        if (!exists) {
+          return [...prev, data];
+        }
+        return prev;
+      });
+
+      // Add notification for friend request
+      handleNotification({
+        type: 'friend_request',
+        sender: data.sender,
+        recipient: data.recipient,
+        createdAt: new Date(),
+        read: false,
+        _id: data._id
+      });
     });
 
     // Listen for friend request accepted
@@ -72,8 +101,13 @@ const Dashboard = () => {
       // You can add a notification here
     });
 
+    // Listen for friend request declined
+    socketService.onFriendRequestDeclined((requestId) => {
+      setFriendRequests(prev => prev.filter(req => req._id !== requestId));
+    });
+
     return () => socketService.disconnect();
-  }, [selectedFriend]);
+  }, []);
 
   // Handle friend selection
   const handleFriendSelect = async (friend) => {
@@ -174,14 +208,27 @@ const Dashboard = () => {
   const handleSendFriendRequest = async (userId) => {
     try {
       setSearchLoading(true);
-      await friendService.sendFriendRequest(userId);
+      const result = await friendService.sendFriendRequest(userId);
+      
+      if (!result.success) {
+        // If it's a duplicate request, just close the dropdown
+        if (result.error === 'Friend request already sent') {
+          return result;
+        }
+        // For other errors, show them to the user
+        console.error('Error:', result.error);
+        return result;
+      }
+      
       // Remove user from search results
       setSearchResults(prev => prev.filter(user => user._id !== userId));
-      setIsDropdownOpen(false);
-      // You can add a success notification here
+      return result;
     } catch (error) {
       console.error('Error sending friend request:', error);
-      // You can add an error notification here
+      return {
+        success: false,
+        error: 'Failed to send friend request'
+      };
     } finally {
       setSearchLoading(false);
     }
@@ -191,6 +238,7 @@ const Dashboard = () => {
   const handleAcceptFriendRequest = async (requestId) => {
     try {
       await friendService.acceptFriendRequest(requestId);
+      // Remove the request from the list
       setFriendRequests(prev => prev.filter(req => req._id !== requestId));
       // Refresh friends list
       const updatedFriends = await friendService.getFriends();
@@ -209,6 +257,60 @@ const Dashboard = () => {
       console.error('Error declining friend request:', error);
     }
   };
+
+  // Add useEffect to fetch friend requests
+  useEffect(() => {
+    const fetchFriendRequests = async () => {
+      try {
+        console.log('Fetching friend requests...');
+        const requests = await friendService.getFriendRequests();
+        console.log('Received friend requests:', requests);
+        if (Array.isArray(requests)) {
+          setFriendRequests(requests);
+        } else {
+          console.error('Invalid friend requests format:', requests);
+        }
+      } catch (error) {
+        console.error('Error fetching friend requests:', error);
+      }
+    };
+
+    fetchFriendRequests();
+    // Check for new requests every 30 seconds
+    const interval = setInterval(fetchFriendRequests, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Handle marking notifications as read
+  const handleMarkAsRead = async (notificationId) => {
+    try {
+      await notificationService.markAsRead(notificationId);
+      setNotifications(prev => 
+        prev.map(notif => 
+          notif._id === notificationId ? { ...notif, read: true } : notif
+        )
+      );
+      setUnreadNotifications(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  // Add click outside handler for notifications
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showNotifications && 
+          notificationsRef.current && 
+          !notificationsRef.current.contains(event.target) &&
+          !event.target.closest('.notification-button')) {
+        setShowNotifications(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showNotifications]);
 
   return (
     <div className="flex h-screen bg-white relative">
@@ -251,19 +353,34 @@ const Dashboard = () => {
         <div className="p-4 flex-1 overflow-y-auto">
           <h1 className="text-xl text-center font-bold text-[#008D9C] mb-10 mt-4">CHATTING</h1>
           
-          <div className="flex justify-center ml-2 mr-2">
-            <button className="w-full mt-2 bg-gradient-to-r from-[#008D9C] to-[#003136] text-white py-2 px-3 rounded-lg hover:opacity-90 transition-opacity relative">
+          <div className="flex justify-center ml-2 mr-2 relative">
+            <button 
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="notification-button w-full mt-2 bg-gradient-to-r from-[#008D9C] to-[#003136] text-white py-2 px-3 rounded-lg hover:opacity-90 transition-opacity relative"
+            >
               <div className="flex items-center justify-center gap-2">
                 <IoNotificationsOutline className="h-5 w-5" />
                 <span>Notifications</span>
-                <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                  3
-                </div>
+                {unreadNotifications > 0 && (
+                  <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                    {unreadNotifications}
+                  </div>
+                )}
               </div>
             </button>
+            {showNotifications && (
+              <div ref={notificationsRef} className="absolute right-0 top-full mt-2 z-50">
+                <Notifications
+                  notifications={notifications}
+                  onAccept={handleAcceptFriendRequest}
+                  onDecline={handleDeclineFriendRequest}
+                  onMarkAsRead={handleMarkAsRead}
+                />
+              </div>
+            )}
           </div>
 
-          {/* Friends List - Updated */}
+          {/* Friends List Section */}
           <div className="mt-6">
             <hr className="border-t-2 border-[#008D9C]" />
             <h2 className="text-sm font-medium text-center text-black mt-3">Friends</h2>
@@ -312,82 +429,18 @@ const Dashboard = () => {
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col bg-[#F4F4F4]">
-        {/* Chat Header with Dropdown */}
-        <div className="border-b border-t border-[#008D9C] mt-3 p-2 flex justify-between mx-5 items-center relative">
-          <h2 className="text-1xl font-semibold text-[#008D9C]">CHATTING</h2>
-          <div className="flex items-center">
-            <div className="relative">
-              <button 
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="bg-[#008D9C] text-white px-4 py-1 rounded-lg flex items-center gap-2"
-              >
-                Add Friend
-                <FaCaretDown className="h-5 w-5" />
-              </button>
-
-              {/* Dropdown Menu */}
-              {isDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-60 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                  <div className="p-2">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Search users"
-                        value={searchQuery}
-                        onChange={(e) => handleSearch(e.target.value)}
-                        className="w-full px-3 py-2 border rounded-lg pr-8 focus:outline-none focus:ring-2 focus:ring-[#008D9C]"
-                      />
-                      <div className="absolute inset-y-0 right-0 flex items-center pr-2">
-                        {searchLoading ? (
-                          <div className="animate-spin h-5 w-5 border-2 border-[#008D9C] border-t-transparent rounded-full" />
-                        ) : (
-                          <FiSearch className="h-5 w-5 text-gray-400" />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="max-h-60 overflow-y-auto">
-                    {searchQuery.length < 2 ? (
-                      <div className="p-4 text-center text-gray-500">
-                        Type at least 2 characters to search
-                      </div>
-                    ) : searchLoading ? (
-                      <div className="p-4 text-center text-gray-500">
-                        Loading...
-                      </div>
-                    ) : searchResults.length === 0 ? (
-                      <div className="p-4 text-center text-gray-500">
-                        No users found
-                      </div>
-                    ) : (
-                      searchResults.map((user) => (
-                        <div 
-                          key={user._id}
-                          className="flex items-center gap-3 p-2 hover:bg-gray-50 cursor-pointer"
-                        >
-                          <div className="w-8 h-8 bg-[#008D9C] rounded-full flex items-center justify-center">
-                            <BiUser className="h-5 w-5 text-white" />
-                          </div>
-                          <div className="flex-1">
-                            <div className="text-gray-700">{user.username}</div>
-                            <div className="text-xs text-gray-500">{user.email}</div>
-                          </div>
-                          <button
-                            onClick={() => handleSendFriendRequest(user._id)}
-                            className="text-xs bg-[#008D9C] text-white px-2 py-1 rounded hover:bg-[#007483] transition-colors"
-                          >
-                            Add
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <NavBar 
+          isDropdownOpen={isDropdownOpen}
+          setIsDropdownOpen={setIsDropdownOpen}
+          searchQuery={searchQuery}
+          handleSearch={handleSearch}
+          searchLoading={searchLoading}
+          searchResults={searchResults}
+          handleSendFriendRequest={handleSendFriendRequest}
+          friendRequests={friendRequests}
+          onAcceptRequest={handleAcceptFriendRequest}
+          onDeclineRequest={handleDeclineFriendRequest}
+        />
 
         {/* Chat Messages */}
         <div className="flex-1 flex flex-col justify-end">
