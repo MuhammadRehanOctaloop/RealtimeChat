@@ -1,12 +1,16 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { MdEmail } from "react-icons/md";
 import { RiLockPasswordLine } from "react-icons/ri";
 import { FcGoogle } from "react-icons/fc";
 import { BsMicrosoft } from "react-icons/bs";
 import { BiUser } from "react-icons/bi";
+import { useAuth } from '../context/AuthContext';
 
 const SignUpDesign = () => {
+    const { register } = useAuth();
+    const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -29,7 +33,7 @@ const SignUpDesign = () => {
         }
     };
 
-    const handleSignUp = (e) => {
+    const handleSignUp = async (e) => {
         e.preventDefault();
         const newErrors = {};
 
@@ -56,9 +60,17 @@ const SignUpDesign = () => {
             return;
         }
 
-        // If validation passes, proceed with signup
-        console.log('Form submitted:', formData);
-        // Add your signup logic here
+        try {
+            setLoading(true);
+            await register(formData.name, formData.email, formData.password);
+            navigate('/');
+        } catch (error) {
+            setErrors({
+                general: error.message || 'Registration failed'
+            });
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -149,9 +161,10 @@ const SignUpDesign = () => {
                         {/* Submit Button */}
                         <button
                             type="submit"
-                            className=" mt-2 w-full bg-[#008D9C] text-white py-2 rounded-lg hover:bg-[#007483] transition-colors"
+                            disabled={loading}
+                            className="mt-2 w-full bg-[#008D9C] text-white py-2 rounded-lg hover:bg-[#007483] transition-colors"
                         >
-                            Create Account
+                            {loading ? 'Creating Account...' : 'Create Account'}
                         </button>
                     </form>
 

@@ -4,14 +4,17 @@ import { MdEmail } from "react-icons/md";
 import { RiLockPasswordLine } from "react-icons/ri";
 import { FcGoogle } from "react-icons/fc";
 import { BsMicrosoft } from "react-icons/bs";
+import { useAuth } from '../context/AuthContext';
 
 const SignInDesign = () => {
     const navigate = useNavigate();
+    const { login } = useAuth();
     const [formData, setFormData] = useState({
         email: '',
         password: ''
     });
     const [errors, setErrors] = useState({});
+    const [loading, setLoading] = useState(false);
 
     const handleInputChange = (e) => {
         const { id, value } = e.target;
@@ -28,7 +31,7 @@ const SignInDesign = () => {
         }
     };
   
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
         const newErrors = {};
 
@@ -38,10 +41,9 @@ const SignInDesign = () => {
             newErrors.email = 'Please enter a valid email address';
         }
 
-        // Updated password validation to allow special characters
-        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>])[A-Za-z\d!@#$%^&*(),.?":{}|<>]{8,}$/;
-        if (!formData.password || !passwordRegex.test(formData.password)) {
-            newErrors.password = 'Password must be at least 8 characters with uppercase, lowercase, number and special character';
+        // Password validation - temporarily simplify for testing
+        if (!formData.password) {
+            newErrors.password = 'Password is required';
         }
 
         if (Object.keys(newErrors).length > 0) {
@@ -49,8 +51,20 @@ const SignInDesign = () => {
             return;
         }
 
-        // If validation passes, proceed with login
-        navigate('/dashboard');
+        try {
+            setLoading(true);
+            setErrors({}); // Clear any previous errors
+            console.log('Submitting login form:', formData); // Debug log
+            await login(formData.email, formData.password);
+            navigate('/dashboard');
+        } catch (error) {
+            console.error('Login error in component:', error); // Debug log
+            setErrors({
+                general: error.message || 'Login failed. Please check your credentials.'
+            });
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -87,6 +101,11 @@ const SignInDesign = () => {
                     </p>
 
                     <form onSubmit={handleLogin}>
+                        {errors.general && (
+                            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">
+                                {errors.general}
+                            </div>
+                        )}
                         {/* Email Input */}
                         <div className="mb-4">
                             <label className="block text-sm text-left font-medium text-black mb-1">Email</label>
@@ -129,9 +148,10 @@ const SignInDesign = () => {
                         {/* Submit Button */}
                         <button
                             type="submit"
+                            disabled={loading}
                             className="mt-2 w-full bg-[#008D9C] text-white py-2 rounded-lg hover:bg-[#007483] transition-colors"
                         >
-                            Log In
+                            {loading ? 'Logging in...' : 'Log In'}
                         </button>
                     </form>
 
