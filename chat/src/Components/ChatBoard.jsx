@@ -1,30 +1,77 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { messageService } from '../services/messageService';
 import { socketService } from '../services/socketService';
-import { BsArrowRight } from "react-icons/bs";
+import { BsArrowRight, BsArrowDown } from "react-icons/bs";
 
 const ChatBoard = ({ selectedFriend, onClose }) => {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [hasNewMessages, setHasNewMessages] = useState(false);
+    const [isNearBottom, setIsNearBottom] = useState(true);
+    const pollingInterval = useRef(null);
+    const messagesEndRef = useRef(null);
+    const messageContainerRef = useRef(null);
+
+    const scrollToBottom = () => {
+        if (messageContainerRef.current) {
+            messageContainerRef.current.scrollTop = messageContainerRef.current.scrollHeight;
+        }
+        setHasNewMessages(false);
+    };
+
+    const handleScroll = () => {
+        if (messageContainerRef.current) {
+            const { scrollTop, scrollHeight, clientHeight } = messageContainerRef.current;
+            const bottom = scrollHeight - scrollTop - clientHeight < 100;
+            setIsNearBottom(bottom);
+            if (bottom) setHasNewMessages(false);
+        }
+    };
 
     useEffect(() => {
         if (selectedFriend) {
             loadMessages();
             setupSocketListeners();
+            startMessagePolling();
         }
 
         return () => {
             socketService.disconnect();
+            if (pollingInterval.current) {
+                clearInterval(pollingInterval.current);
+            }
         };
     }, [selectedFriend]);
+
+    useEffect(() => {
+        if (isNearBottom) {
+            setTimeout(scrollToBottom, 100);
+        } else {
+            setHasNewMessages(true);
+        }
+    }, [messages]);
+
+    const startMessagePolling = () => {
+        pollingInterval.current = setInterval(async () => {
+            try {
+                const conversation = await messageService.getConversation(selectedFriend._id);
+                if (conversation.length > messages.length) {
+                    setMessages(conversation);
+                }
+            } catch (error) {
+                console.error('Error polling messages:', error);
+            }
+        }, 2000);
+    };
 
     const loadMessages = async () => {
         try {
             setLoading(true);
             const conversation = await messageService.getConversation(selectedFriend._id);
             setMessages(Array.isArray(conversation) ? conversation : []);
+            setTimeout(scrollToBottom, 100);
         } catch (error) {
             console.error('Error loading messages:', error);
             setMessages([]);
@@ -35,7 +82,13 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
 
     const setupSocketListeners = () => {
         socketService.onMessage((message) => {
-            setMessages(prev => Array.isArray(prev) ? [...prev, message] : [message]);
+            if (message.sender._id === selectedFriend._id || 
+                message.recipient._id === selectedFriend._id) {
+                setMessages(prev => Array.isArray(prev) ? [...prev, message] : [message]);
+                if (!isNearBottom) {
+                    setHasNewMessages(true);
+                }
+            }
         });
 
         socketService.onTyping(({ isTyping: typing, userId }) => {
@@ -50,7 +103,8 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
         if (!newMessage.trim()) return;
 
         try {
-            await messageService.sendMessage(selectedFriend._id, newMessage);
+            const sentMessage = await messageService.sendMessage(selectedFriend._id, newMessage);
+            setMessages(prev => [...prev, sentMessage]);
             setNewMessage('');
         } catch (error) {
             console.error('Error sending message:', error);
@@ -63,9 +117,9 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
     };
 
     return (
-        <div className="flex-1 flex flex-col bg-[#F4F4F4] rounded-lg shadow-lg">
+        <div className="flex-1 flex flex-col bg-[#F4F4F4] h-screen">
             {/* Chat Header */}
-            <div className="flex items-center justify-between p-4 border-b">
+            <div className="sticky top-0 z-10 w-full flex items-center justify-between p-4 border-b bg-[#F4F4F4]">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-[#008D9C] rounded-full flex items-center justify-center">
                         <span className="text-white text-lg">
@@ -88,38 +142,62 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div 
+                ref={messageContainerRef}
+                className="flex-1 overflow-y-auto p-4 space-y-4 mt-2 relative" 
+                style={{ height: 'calc(100vh - 160px)' }}
+                onScroll={handleScroll}
+            >
                 {loading ? (
                     <div className="text-center text-gray-500">Loading messages...</div>
                 ) : !Array.isArray(messages) || messages.length === 0 ? (
                     <div className="text-center text-gray-500">No messages yet</div>
                 ) : (
-                    messages.map((message) => (
-                        <div
-                            key={message._id || Math.random()}
-                            className={`flex ${
-                                message.sender === selectedFriend._id ? 'justify-start' : 'justify-end'
-                            }`}
-                        >
+                    <>
+                        {messages.map((message) => (
                             <div
-                                className={`max-w-[70%] rounded-lg p-3 ${
-                                    message.sender === selectedFriend._id
-                                        ? 'bg-gray-100'
-                                        : 'bg-[#008D9C] text-white'
+                                key={message._id || Math.random()}
+                                className={`flex ${
+                                    message.sender._id === selectedFriend._id ? 'justify-start' : 'justify-end'
                                 }`}
                             >
-                                <p>{message.content}</p>
-                                <span className="text-xs opacity-70">
-                                    {new Date(message.createdAt).toLocaleTimeString()}
-                                </span>
+                                <div
+                                    className={`max-w-[70%] rounded-lg p-3 ${
+                                        message.sender._id === selectedFriend._id
+                                            ? 'bg-gray-100'
+                                            : 'bg-[#008D9C] text-white'
+                                    }`}
+                                >
+                                    <p>{message.content}</p>
+                                    {message.edited && (
+                                        <span className="text-xs opacity-50 italic">(edited)</span>
+                                    )}
+                                    <span className="flex justify-end text-xs opacity-70">
+                                        {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-                    ))
+                        ))}
+                        <div ref={messagesEndRef} className="h-4" />
+                    </>
+                )}
+
+                {/* New Messages Button */}
+                {hasNewMessages && !isNearBottom && (
+                    <button
+                        onClick={scrollToBottom}
+                        className="fixed top-20 left-1/2 transform -translate-x-1/2 
+                            bg-[#008D9C] text-white px-4 py-2 rounded-full shadow-lg 
+                            flex items-center gap-2 hover:bg-[#007483] transition-colors"
+                    >
+                        <BsArrowDown className="h-4 w-4" />
+                        New Messages
+                    </button>
                 )}
             </div>
 
             {/* Message Input */}
-            <form onSubmit={handleSendMessage} className="p-4 pt-0">
+            <form onSubmit={handleSendMessage} className="sticky bottom-0 p-4 bg-[#F4F4F4] border-t">
                 <div className="flex items-center space-x-2 border-[#008D9C] rounded-lg bg-[#F4F4F4] relative">
                     <input
                         type="text"

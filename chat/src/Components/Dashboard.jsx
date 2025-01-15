@@ -473,25 +473,28 @@ const Dashboard = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex bg-[#F4F4F4] flex-col">
-        <NavBar 
-          isDropdownOpen={isDropdownOpen}
-          setIsDropdownOpen={setIsDropdownOpen}
-          searchQuery={searchQuery}
-          handleSearch={handleSearch}
-          searchLoading={searchLoading}
-          searchResults={searchResults}
-          handleSendFriendRequest={handleSendFriendRequest}
-          friendRequests={friendRequests}
-          onAcceptRequest={handleAcceptFriendRequest}
-          onDeclineRequest={handleDeclineFriendRequest}
-          notifications={notifications}
-          unreadNotifications={unreadNotifications}
-          onMarkNotificationRead={handleMarkAsRead}
-          onMarkAllNotificationsRead={handleMarkAllAsRead}
-          toggleSidebar={toggleSidebar}
-          isSidebarOpen={isSidebarOpen}
-        />
-        
+        {/* Show NavBar only when no friend is selected */}
+        {!selectedFriend && (
+          <NavBar 
+            isDropdownOpen={isDropdownOpen}
+            setIsDropdownOpen={setIsDropdownOpen}
+            searchQuery={searchQuery}
+            handleSearch={handleSearch}
+            searchLoading={searchLoading}
+            searchResults={searchResults}
+            handleSendFriendRequest={handleSendFriendRequest}
+            friendRequests={friendRequests}
+            onAcceptRequest={handleAcceptFriendRequest}
+            onDeclineRequest={handleDeclineFriendRequest}
+            notifications={notifications}
+            unreadNotifications={unreadNotifications}
+            onMarkNotificationRead={handleMarkAsRead}
+            onMarkAllNotificationsRead={handleMarkAllAsRead}
+            toggleSidebar={toggleSidebar}
+            isSidebarOpen={isSidebarOpen}
+          />
+        )}
+
         {selectedFriend ? (
           <ChatBoard
             selectedFriend={selectedFriend}

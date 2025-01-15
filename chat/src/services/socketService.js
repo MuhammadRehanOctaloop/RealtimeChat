@@ -21,7 +21,12 @@ export const socketService = {
 
     // Message events
     onMessage: (callback) => {
-        if (socket) socket.on('new_message', callback);
+        if (socket) {
+            socket.on('new_message', (data) => {
+                console.log('Received new message:', data);
+                callback(data);
+            });
+        }
     },
 
     onTyping: (callback) => {
@@ -62,7 +67,10 @@ export const socketService = {
     },
 
     emitMessage: (message) => {
-        if (socket) socket.emit('message', message);
+        if (socket) {
+            console.log('Emitting message:', message);
+            socket.emit('message', message);
+        }
     },
 
     emitFriendRequest: (userId) => {

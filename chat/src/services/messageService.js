@@ -4,7 +4,7 @@ export const messageService = {
     getConversation: async (userId) => {
         try {
             const response = await api.get(`/api/v1/messages/conversation/${userId}`);
-            return Array.isArray(response.data.data) ? response.data.data : [];
+            return response.data.data.messages || [];
         } catch (error) {
             console.error('Error fetching conversation:', error);
             return [];
@@ -12,8 +12,16 @@ export const messageService = {
     },
 
     sendMessage: async (recipientId, content) => {
-        const response = await api.post('/api/v1/messages', { recipientId, content });
-        return response.data;
+        try {
+            const response = await api.post('/api/v1/messages', { 
+                recipientId, 
+                content 
+            });
+            return response.data.data.message;
+        } catch (error) {
+            console.error('Error sending message:', error);
+            throw error;
+        }
     },
 
     editMessage: async (messageId, content) => {
