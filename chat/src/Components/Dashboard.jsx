@@ -4,7 +4,6 @@ import { RiLogoutBoxRLine } from "react-icons/ri";
 import { FiMenu } from "react-icons/fi";
 import { BsArrowRight } from "react-icons/bs";
 import { BiUser } from "react-icons/bi";
-import { IoNotificationsOutline } from "react-icons/io5";
 import { IoMdClose } from "react-icons/io";
 import NavBar from './NavBar';
 import { friendService } from '../services/friendService';
@@ -372,18 +371,6 @@ const Dashboard = () => {
 
   return (
     <div className="flex h-screen bg-white relative">
-      {/* Mobile Menu Button - Hidden when sidebar is open */}
-      <button 
-        onClick={toggleSidebar}
-        className={`
-          lg:hidden absolute top-5 left-40 z-50 bg-[#008D9C] text-white p-1 rounded-lg 
-          hover:bg-[#007483] transition-all duration-300
-          ${isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}
-        `}
-      >
-        <FiMenu className="h-6 w-6" />
-      </button>
-
       {/* Overlay for mobile */}
       {isSidebarOpen && (
         <div 
@@ -409,25 +396,12 @@ const Dashboard = () => {
         </button>
 
         <div className="p-4 flex-1 overflow-y-auto">
-          <h1 className="text-xl text-center font-bold text-[#008D9C] mb-10 mt-4">CHATTING</h1>
+          
+          <h1 className="text-xl text-center font-bold text-[#008D9C] mb-4 mt-4">CHATTING</h1>
           
           <div className="flex justify-center ml-2 mr-2 relative">
-            <button 
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="notification-button w-full mt-2 bg-gradient-to-r from-[#008D9C] to-[#003136] text-white py-2 px-3 rounded-lg hover:opacity-90 transition-opacity relative"
-            >
-              <div className="flex items-center justify-center gap-2">
-                <IoNotificationsOutline className="h-5 w-5" />
-                <span>Notifications</span>
-                {unreadNotifications > 0 && (
-                  <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                    {unreadNotifications}
-                  </div>
-                )}
-              </div>
-            </button>
             {showNotifications && (
-              <div ref={notificationsRef} className="absolute right-0 top-full mt-2 z-50">
+              <div ref={notificationsRef} className="absolute left-5 top-full mt-2 z-50">
                 <Notifications
                   notifications={notifications}
                   onAccept={handleAcceptFriendRequest}
@@ -500,6 +474,12 @@ const Dashboard = () => {
           friendRequests={friendRequests}
           onAcceptRequest={handleAcceptFriendRequest}
           onDeclineRequest={handleDeclineFriendRequest}
+          notifications={notifications}
+          unreadNotifications={unreadNotifications}
+          onMarkNotificationRead={handleMarkAsRead}
+          onMarkAllNotificationsRead={handleMarkAllAsRead}
+          toggleSidebar={toggleSidebar}
+          isSidebarOpen={isSidebarOpen}
         />
 
         {/* Chat Messages */}

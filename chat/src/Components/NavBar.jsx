@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { FaCaretDown } from "react-icons/fa";
-import { FiSearch } from "react-icons/fi";
-import { BiUser, BiUserPlus } from "react-icons/bi";
+import { FiSearch, FiMenu } from "react-icons/fi";
+import { BiUser, BiUserPlus, BiBell } from "react-icons/bi";
+import Notifications from './Notifications';
 
 const NavBar = ({ 
   isDropdownOpen, 
@@ -13,10 +14,16 @@ const NavBar = ({
   handleSendFriendRequest,
   friendRequests = [],
   onAcceptRequest,
-  onDeclineRequest 
+  onDeclineRequest,
+  notifications = [],
+  unreadNotifications = 0,
+  onMarkNotificationRead,
+  onMarkAllNotificationsRead,
+  toggleSidebar,
+  isSidebarOpen
 }) => {
   const [error, setError] = useState(null);
-  const [showFriendRequests, setShowFriendRequests] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const handleAddFriend = async (userId) => {
     const result = await handleSendFriendRequest(userId);
@@ -36,61 +43,44 @@ const NavBar = ({
 
   return (
     <div className="border-b border-t border-[#008D9C] mt-3 p-2 flex justify-between mx-5 items-center relative">
-      <h2 className="text-1xl font-semibold text-[#008D9C]">CHATTING</h2>
+      <h2 className="text-1xl p-2 font-semibold text-[#008D9C]">CHATTING</h2>
       <div className="flex items-center gap-3">
+        {/* Mobile Menu Button */}
+        <button 
+          onClick={toggleSidebar}
+          className={`
+            lg:hidden bg-[#008D9C] text-white p-1 rounded-lg
+            hover:bg-[#007483] transition-all duration-300
+            ${isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}
+          `}
+        >
+          <FiMenu className="h-6 w-6" />
+        </button>
+
+        {/* Notifications Button with Friend Requests */}
         <div className="relative">
           <button 
-            onClick={() => setShowFriendRequests(!showFriendRequests)}
+            onClick={() => setShowNotifications(!showNotifications)}
             className="bg-[#008D9C] text-white px-4 py-1 rounded-lg flex items-center gap-2"
           >
-            Friend Requests
-            {friendRequests.length > 0 && (
+            <BiBell className="h-5 w-5" />
+            {(unreadNotifications > 0 || friendRequests.length > 0) && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                {friendRequests.length}
+                {unreadNotifications + friendRequests.length}
               </span>
             )}
           </button>
           
-          {showFriendRequests && (
-            <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-              {friendRequests.length === 0 ? (
-                <div className="p-4 text-center text-gray-500">
-                  No pending friend requests
-                </div>
-              ) : (
-                <div className="max-h-96 overflow-y-auto">
-                  {friendRequests.map((request) => (
-                    <div 
-                      key={request._id}
-                      className="flex items-center justify-between p-3 hover:bg-gray-50 border-b"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-[#008D9C] rounded-full flex items-center justify-center">
-                          <BiUser className="h-5 w-5 text-white" />
-                        </div>
-                        <div>
-                          <div className="font-medium">{request.sender?.username}</div>
-                          <div className="text-xs text-gray-500">Sent you a friend request</div>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => onAcceptRequest(request._id)}
-                          className="px-2 py-1 bg-[#008D9C] text-white text-sm rounded hover:bg-[#007483]"
-                        >
-                          Accept
-                        </button>
-                        <button
-                          onClick={() => onDeclineRequest(request._id)}
-                          className="px-2 py-1 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300"
-                        >
-                          Decline
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+          {showNotifications && (
+            <div className="absolute -left-40 mt-2 z-50">
+              <Notifications
+                notifications={notifications}
+                friendRequests={friendRequests}
+                onAcceptRequest={onAcceptRequest}
+                onDeclineRequest={onDeclineRequest}
+                onMarkAsRead={onMarkNotificationRead}
+                onMarkAllAsRead={onMarkAllNotificationsRead}
+              />
             </div>
           )}
         </div>
@@ -101,7 +91,7 @@ const NavBar = ({
             className="bg-[#008D9C] text-white px-4 py-1 rounded-lg flex items-center gap-2"
           >
             <BiUserPlus className="h-5 w-5" />
-            <span>Add Friend</span>
+            <span className="hidden sm:inline">Add Friend</span>
             <FaCaretDown className="h-5 w-5" />
           </button>
 
@@ -120,7 +110,7 @@ const NavBar = ({
                     placeholder="Search users"
                     value={searchQuery}
                     onChange={(e) => handleSearch(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg pr-8 focus:outline-none focus:ring-2 focus:ring-[#008D9C]"
+                    className="w-full px-3 py-2 border rounded-lg pr-8 focus:outline-none focus:ring-2 focus:ring-[#008D9C] text-sm"
                   />
                   <div className="absolute inset-y-0 right-0 flex items-center pr-2">
                     {searchLoading ? (
