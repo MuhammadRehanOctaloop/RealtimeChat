@@ -2,15 +2,13 @@ import api from './api';
 
 export const notificationService = {
     // Get all notifications
-    getAllNotifications: async () => {
+    getMessageNotifications: async () => {
         try {
-            const response = await api.get('/api/v1/notifications');
-            console.log('All notifications response:', response.data);
-            // Extract notifications array from response
-            return response.data.data.notifications || [];
+            const response = await api.get('/api/v1/notifications/messages');
+            return response.data.data;
         } catch (error) {
             console.error('Error fetching notifications:', error);
-            return [];
+            throw error;
         }
     },
 
@@ -18,20 +16,17 @@ export const notificationService = {
     getUnreadNotifications: async () => {
         try {
             const response = await api.get('/api/v1/notifications/unread');
-            console.log('Unread notifications response:', response.data);
-            // Extract notifications array from response
-            return response.data.data.notifications || [];
+            return response.data.data;
         } catch (error) {
             console.error('Error fetching unread notifications:', error);
-            return [];
+            throw error;
         }
     },
 
     // Mark single notification as read
     markAsRead: async (notificationId) => {
         try {
-            const response = await api.patch(`/api/v1/notifications/${notificationId}/read`);
-            return response.data.data.notification;
+            await api.patch(`/api/v1/notifications/${notificationId}/read`);
         } catch (error) {
             console.error('Error marking notification as read:', error);
             throw error;
@@ -41,8 +36,7 @@ export const notificationService = {
     // Mark all notifications as read
     markAllAsRead: async () => {
         try {
-            const response = await api.patch('/api/v1/notifications/mark-all-read');
-            return response.data;
+            await api.patch('/api/v1/notifications/mark-all-read');
         } catch (error) {
             console.error('Error marking all notifications as read:', error);
             throw error;

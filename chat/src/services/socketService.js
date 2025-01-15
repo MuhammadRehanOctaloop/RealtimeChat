@@ -58,7 +58,18 @@ export const socketService = {
 
     // Notification events
     onNotification: (callback) => {
-        if (socket) socket.on('notification', callback);
+        if (socket) {
+            socket.on('newNotification', (data) => {
+                console.log('Received notification:', data);
+                callback(data.notification);
+            });
+        }
+    },
+
+    onNotificationUpdated: (callback) => {
+        if (socket) {
+            socket.on('notificationUpdated', callback);
+        }
     },
 
     // Emitters

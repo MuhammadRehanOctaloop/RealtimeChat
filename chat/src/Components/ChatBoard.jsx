@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { messageService } from '../services/messageService';
 import { socketService } from '../services/socketService';
-import { BsArrowRight, BsArrowDown, BsPencil, BsCheck, BsX } from "react-icons/bs";
+import { BsArrowRight, BsArrowDown, BsPencil, BsImage, BsPaperclip } from "react-icons/bs";
 import { notificationUtils } from '../utils/notificationUtils';
 
 const ChatBoard = ({ selectedFriend, onClose }) => {
@@ -16,6 +16,8 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
     const messageContainerRef = useRef(null);
     const [editingMessage, setEditingMessage] = useState(null);
     const [editText, setEditText] = useState('');
+    const fileInputRef = useRef(null);
+    const imageInputRef = useRef(null);
 
     const scrollToBottom = () => {
         if (messageContainerRef.current) {
@@ -150,6 +152,49 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
         socketService.emitTyping(selectedFriend._id, e.target.value.length > 0);
     };
 
+    const handleFileSelect = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        try {
+            setLoading(true);
+            const sentMessage = await messageService.sendFileMessage(selectedFriend._id, file);
+            setMessages(prev => [...prev, sentMessage]);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        } catch (error) {
+            console.error('Error sending file:', error);
+            alert('Failed to send file. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleImageSelect = async (event) => {
+        const image = event.target.files[0];
+        if (!image) return;
+
+        if (!image.type.startsWith('image/')) {
+            alert('Please select a valid image file');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const sentMessage = await messageService.sendImageMessage(selectedFriend._id, image);
+            setMessages(prev => [...prev, sentMessage]);
+            if (imageInputRef.current) {
+                imageInputRef.current.value = '';
+            }
+        } catch (error) {
+            console.error('Error sending image:', error);
+            alert('Failed to send image. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="flex-1 flex flex-col bg-[#F4F4F4] h-screen">
             {/* Chat Header */}
@@ -202,7 +247,7 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                                             : 'bg-[#008D9C] text-white'
                                     } text-left relative group`}
                                 >
-                                    {message.sender._id !== selectedFriend._id && (
+                                    {message.sender._id !== selectedFriend._id && message.type === 'text' && (
                                         <button
                                             onClick={() => handleEditMessage(message)}
                                             className="absolute -left-8 top-2 opacity-0 group-hover:opacity-100 
@@ -211,8 +256,32 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                                             <BsPencil className="h-4 w-4" />
                                         </button>
                                     )}
-                                    <p className="break-words">{message.content}</p>
-                                    {message.edited && (
+                                    {message.type === 'image' ? (
+                                        <img 
+                                            src={message.fileUrl} 
+                                            alt="Shared image" 
+                                            className="rounded-lg max-w-full cursor-pointer hover:opacity-90"
+                                            onClick={() => window.open(message.fileUrl, '_blank')}
+                                        />
+                                    ) : message.type === 'file' ? (
+                                        <div className="space-y-2">
+                                            <a 
+                                                href={message.fileUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-2 text-current hover:underline"
+                                            >
+                                                <BsPaperclip className="h-4 w-4" />
+                                                {message.fileName}
+                                            </a>
+                                            <div className="text-xs opacity-70">
+                                                {(message.fileSize / 1024).toFixed(1)} KB
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p className="break-words">{message.content}</p>
+                                    )}
+                                    {message.edited && message.type === 'text' && (
                                         <span className="text-xs opacity-50 italic block">(edited)</span>
                                     )}
                                     <span className={`flex ${
@@ -246,6 +315,42 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
             {/* Message Input */}
             <form onSubmit={handleSendMessage} className="sticky bottom-0 p-4 bg-[#F4F4F4] border-t">
                 <div className="flex items-center space-x-2 border-[#008D9C] rounded-lg bg-[#F4F4F4] relative">
+                    {/* File Input */}
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileSelect}
+                        className="hidden"
+                        accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.zip,.rar"
+                        disabled={loading}
+                    />
+                    <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className={`p-2 text-[#008D9C] hover:bg-gray-100 rounded-lg ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={loading}
+                    >
+                        <BsPaperclip className="h-5 w-5" />
+                    </button>
+
+                    {/* Image Input */}
+                    <input
+                        type="file"
+                        ref={imageInputRef}
+                        onChange={handleImageSelect}
+                        className="hidden"
+                        accept="image/*"
+                        disabled={loading}
+                    />
+                    <button
+                        type="button"
+                        onClick={() => imageInputRef.current?.click()}
+                        className={`p-2 text-[#008D9C] hover:bg-gray-100 rounded-lg ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={loading}
+                    >
+                        <BsImage className="h-5 w-5" />
+                    </button>
+
                     <input
                         type="text"
                         value={newMessage}

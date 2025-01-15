@@ -26,6 +26,15 @@ api.interceptors.request.use(
     }
 );
 
+// Add request interceptor to remove Content-Type for FormData
+api.interceptors.request.use(config => {
+    if (config.data instanceof FormData) {
+        // Let the browser set the Content-Type with boundary for FormData
+        delete config.headers['Content-Type'];
+    }
+    return config;
+});
+
 // Response interceptor
 api.interceptors.response.use(
     (response) => {

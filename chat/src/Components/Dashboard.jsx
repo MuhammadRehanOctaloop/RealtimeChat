@@ -23,7 +23,7 @@ const Dashboard = () => {
   const [selectedFriend, setSelectedFriend] = useState(null);
   const [messages, setMessages] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [isTyping, setIsTyping] = useState(false);
   const [messageInput, setMessageInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -37,13 +37,16 @@ const Dashboard = () => {
   const [friendRequests, setFriendRequests] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationsRef = useRef(null);
+  const notificationButtonRef = useRef(null);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [notificationsError, setNotificationsError] = useState(null);
+  const friendsPollingInterval = useRef(null);
+  const notificationsPollingInterval = useRef(null);
 
   // Add notification handler
   const handleNotification = (notification) => {
     setNotifications(prev => [notification, ...prev]);
-    setUnreadNotifications(prev => prev + 1);
+    setUnreadCount(prev => prev + 1);
   };
 
   // Initialize WebSocket connection
@@ -54,13 +57,13 @@ const Dashboard = () => {
         setNotificationsError(null);
         console.log('Fetching notifications...');
         
-        const allNotifications = await notificationService.getAllNotifications();
-        console.log('Received notifications:', allNotifications);
-        setNotifications(allNotifications);
-        
+        const messageNotifications = await notificationService.getMessageNotifications();
         const unreadNotifications = await notificationService.getUnreadNotifications();
-        console.log('Unread notifications:', unreadNotifications);
-        setUnreadNotifications(unreadNotifications.length);
+        
+        setNotifications(messageNotifications);
+        // Calculate unread count from notifications
+        const unreadCount = messageNotifications.filter(notif => !notif.read).length;
+        setUnreadCount(unreadCount);
       } catch (error) {
         console.error('Error fetching notifications:', error);
         setNotificationsError('Failed to load notifications');
@@ -71,8 +74,7 @@ const Dashboard = () => {
     };
 
     fetchNotifications();
-    // Set up interval to periodically fetch notifications
-    const interval = setInterval(fetchNotifications, 30000);
+    startNotificationsPolling();
 
     const socket = socketService.connect(localStorage.getItem('accessToken'));
 
@@ -80,7 +82,7 @@ const Dashboard = () => {
     socketService.onNotification((data) => {
       console.log('Received notification via socket:', data);
       setNotifications(prev => [data, ...prev]);
-      setUnreadNotifications(prev => prev + 1);
+      setUnreadCount(prev => prev + 1);
     });
 
     socketService.onMessage((message) => {
@@ -137,9 +139,54 @@ const Dashboard = () => {
       setFriendRequests(prev => prev.filter(req => req._id !== requestId));
     });
 
+    // Listen for new notifications
+    socketService.onNotification((notification) => {
+      console.log('New notification received:', notification);
+      
+      // Add new notification to the list
+      setNotifications(prev => [notification, ...prev]);
+      
+      // Only increment if notification is not already read
+      if (!notification.read) {
+          setUnreadCount(prev => prev + 1);
+      }
+      
+      // Show browser notification if it's a message
+      if (notification.type === 'message') {
+          notificationUtils.showNotification(
+              `New message from ${notification.sender.username}`,
+              {
+                  body: notification.messageId.content,
+                  tag: 'message-notification',
+                  data: {
+                      notificationId: notification._id,
+                      senderId: notification.sender._id
+                  }
+              }
+          );
+      }
+    });
+
+    // Listen for notification updates
+    socketService.onNotificationUpdated(({ notificationId, read }) => {
+      setNotifications(prev => 
+        prev.map(notif => 
+          notif._id === notificationId 
+            ? { ...notif, read } 
+            : notif
+        )
+      );
+      
+      if (read) {
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+    });
+
     return () => {
       socketService.disconnect();
-      clearInterval(interval);
+      if (notificationsPollingInterval.current) {
+        clearInterval(notificationsPollingInterval.current);
+      }
     };
   }, []);
 
@@ -325,7 +372,8 @@ const Dashboard = () => {
           notif._id === notificationId ? { ...notif, read: true } : notif
         )
       );
-      setUnreadNotifications(prev => Math.max(0, prev - 1));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+      setShowNotifications(false);
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
@@ -336,7 +384,8 @@ const Dashboard = () => {
     try {
       await notificationService.markAllAsRead();
       setNotifications(prev => prev.map(notif => ({ ...notif, read: true })));
-      setUnreadNotifications(0);
+      setUnreadCount(0);
+      setShowNotifications(false);
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
     }
@@ -348,7 +397,7 @@ const Dashboard = () => {
       await notificationService.deleteNotification(notificationId);
       setNotifications(prev => prev.filter(notif => notif._id !== notificationId));
       // Update unread count if needed
-      setUnreadNotifications(prev => 
+      setUnreadCount(prev => 
         notifications.find(n => n._id === notificationId && !n.read) ? prev - 1 : prev
       );
     } catch (error) {
@@ -362,7 +411,7 @@ const Dashboard = () => {
       if (showNotifications && 
           notificationsRef.current && 
           !notificationsRef.current.contains(event.target) &&
-          !event.target.closest('.notification-button')) {
+          !notificationButtonRef.current.contains(event.target)) {
         setShowNotifications(false);
       }
     };
@@ -396,7 +445,58 @@ const Dashboard = () => {
     };
 
     loadInitialData();
+    startFriendsPolling();
+
+    return () => {
+      // Cleanup polling interval on unmount
+      if (friendsPollingInterval.current) {
+        clearInterval(friendsPollingInterval.current);
+      }
+    };
   }, []);
+
+  const startFriendsPolling = () => {
+    // Poll friends list every 2 seconds
+    friendsPollingInterval.current = setInterval(async () => {
+      try {
+        const friendsData = await friendService.getFriends();
+        setFriends(prev => {
+          // Only update if there are changes
+          if (JSON.stringify(prev) !== JSON.stringify(friendsData)) {
+            return friendsData;
+          }
+          return prev;
+        });
+      } catch (error) {
+        console.error('Error polling friends:', error);
+      }
+    }, 2000);
+  };
+
+  const startNotificationsPolling = () => {
+    notificationsPollingInterval.current = setInterval(async () => {
+      try {
+        const messageNotifications = await notificationService.getMessageNotifications();
+        const unreadNotifications = await notificationService.getUnreadNotifications();
+        
+        setNotifications(prev => {
+          // Only update if there are changes
+          if (JSON.stringify(prev) !== JSON.stringify(messageNotifications)) {
+            return messageNotifications;
+          }
+          return prev;
+        });
+        
+        // Update unread count based on unread notifications
+        const newUnreadCount = messageNotifications.filter(notif => !notif.read).length;
+        if (newUnreadCount !== unreadCount) {
+            setUnreadCount(newUnreadCount);
+        }
+      } catch (error) {
+        console.error('Error polling notifications:', error);
+      }
+    }, 2000);
+  };
 
   return (
     <div className="flex h-screen bg-white relative">
@@ -464,16 +564,16 @@ const Dashboard = () => {
                       className={`flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer
                         ${selectedFriend?._id === friend._id ? 'bg-gray-100' : ''}`}
                     >
-                      <div className="w-8 h-8 bg-[#008D9C] rounded-full flex items-center justify-center">
-                        <BiUser className="h-5 w-5 text-white" />
-                      </div>
-                      <div>
+                  <div className="w-8 h-8 bg-[#008D9C] rounded-full flex items-center justify-center">
+                    <BiUser className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
                         <div className="text-sm font-medium text-gray-500">{friend.username}</div>
                         <div className="text-xs text-gray-400">
                           {friend.online ? 'Online' : 'Offline'}
-                        </div>
-                      </div>
-                    </div>
+                  </div>
+                </div>
+              </div>
                   ))}
                 </div>
               )}
@@ -511,7 +611,7 @@ const Dashboard = () => {
             onAcceptRequest={handleAcceptFriendRequest}
             onDeclineRequest={handleDeclineFriendRequest}
             notifications={notifications}
-            unreadNotifications={unreadNotifications}
+            unreadNotifications={unreadCount}
             onMarkNotificationRead={handleMarkAsRead}
             onMarkAllNotificationsRead={handleMarkAllAsRead}
             toggleSidebar={toggleSidebar}

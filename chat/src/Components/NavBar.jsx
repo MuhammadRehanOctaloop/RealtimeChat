@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { FaCaretDown } from "react-icons/fa";
 import { FiSearch, FiMenu } from "react-icons/fi";
 import { BiUser, BiUserPlus, BiBell } from "react-icons/bi";
@@ -24,6 +24,25 @@ const NavBar = ({
 }) => {
   const [error, setError] = useState(null);
   const [showNotifications, setShowNotifications] = useState(false);
+  const notificationsRef = useRef(null);
+  const notificationButtonRef = useRef(null);
+
+  // Handle clicks outside of notifications dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showNotifications && 
+        notificationsRef.current && 
+        !notificationsRef.current.contains(event.target) &&
+        !notificationButtonRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showNotifications]);
 
   const handleAddFriend = async (userId) => {
     const result = await handleSendFriendRequest(userId);
@@ -60,19 +79,23 @@ const NavBar = ({
         {/* Notifications Button with Friend Requests */}
         <div className="relative">
           <button 
+            ref={notificationButtonRef}
             onClick={() => setShowNotifications(!showNotifications)}
             className="bg-[#008D9C] text-white px-4 py-1 rounded-lg flex items-center gap-2"
           >
             <BiBell className="h-5 w-5" />
-            {(unreadNotifications > 0 || friendRequests.length > 0) && (
+            {(unreadNotifications > 0) && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                {unreadNotifications + friendRequests.length}
+                {unreadNotifications}
               </span>
             )}
           </button>
           
           {showNotifications && (
-            <div className="absolute -left-40 mt-2 z-50">
+            <div 
+              ref={notificationsRef}
+              className="absolute -left-40 mt-2 z-50"
+            >
               <Notifications
                 notifications={notifications}
                 friendRequests={friendRequests}
