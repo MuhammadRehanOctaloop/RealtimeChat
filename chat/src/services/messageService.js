@@ -25,8 +25,13 @@ export const messageService = {
     },
 
     editMessage: async (messageId, content) => {
-        const response = await api.patch(`/api/v1/messages/${messageId}`, { content });
-        return response.data;
+        try {
+            const response = await api.patch(`/api/v1/messages/${messageId}`, { content });
+            return response.data.data.message;
+        } catch (error) {
+            console.error('Error editing message:', error);
+            throw error;
+        }
     },
 
     deleteMessage: async (messageId) => {

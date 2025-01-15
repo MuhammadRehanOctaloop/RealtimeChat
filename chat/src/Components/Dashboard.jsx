@@ -14,6 +14,7 @@ import api from '../services/api';
 import { notificationService } from '../services/notificationService';
 import Notifications from './Notifications';
 import ChatBoard from './ChatBoard';
+import { notificationUtils } from '../utils/notificationUtils';
 
 const Dashboard = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -373,6 +374,29 @@ const Dashboard = () => {
   const handleFriendClick = (friend) => {
     setSelectedFriend(friend);
   };
+
+  useEffect(() => {
+    // Request notification permission when dashboard mounts
+    notificationUtils.requestPermission();
+
+    const loadInitialData = async () => {
+      try {
+        const [friendsData, requestsData, notificationsData] = await Promise.all([
+          friendService.getFriends(),
+          friendService.getFriendRequests(),
+          notificationService.getAllNotifications()
+        ]);
+
+        setFriends(friendsData);
+        setFriendRequests(requestsData);
+        setNotifications(notificationsData);
+      } catch (error) {
+        console.error('Error loading initial data:', error);
+      }
+    };
+
+    loadInitialData();
+  }, []);
 
   return (
     <div className="flex h-screen bg-white relative">

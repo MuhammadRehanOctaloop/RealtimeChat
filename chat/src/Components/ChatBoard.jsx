@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { messageService } from '../services/messageService';
 import { socketService } from '../services/socketService';
-import { BsArrowRight, BsArrowDown } from "react-icons/bs";
+import { BsArrowRight, BsArrowDown, BsPencil, BsCheck, BsX } from "react-icons/bs";
+import { notificationUtils } from '../utils/notificationUtils';
 
 const ChatBoard = ({ selectedFriend, onClose }) => {
     const [messages, setMessages] = useState([]);
@@ -13,6 +14,8 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
     const pollingInterval = useRef(null);
     const messagesEndRef = useRef(null);
     const messageContainerRef = useRef(null);
+    const [editingMessage, setEditingMessage] = useState(null);
+    const [editText, setEditText] = useState('');
 
     const scrollToBottom = () => {
         if (messageContainerRef.current) {
@@ -53,6 +56,10 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
         }
     }, [messages]);
 
+    useEffect(() => {
+        notificationUtils.requestPermission();
+    }, []);
+
     const startMessagePolling = () => {
         pollingInterval.current = setInterval(async () => {
             try {
@@ -88,6 +95,16 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                 if (!isNearBottom) {
                     setHasNewMessages(true);
                 }
+                if (message.sender._id === selectedFriend._id) {
+                    notificationUtils.showNotification(
+                        `New message from ${selectedFriend.username}`,
+                        {
+                            body: message.content,
+                            tag: 'chat-message',
+                            renotify: true
+                        }
+                    );
+                }
             }
         });
 
@@ -98,16 +115,33 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
         });
     };
 
+    const handleEditMessage = (message) => {
+        setEditingMessage(message);
+        setNewMessage(message.content);
+    };
+
     const handleSendMessage = async (e) => {
         e.preventDefault();
         if (!newMessage.trim()) return;
 
         try {
-            const sentMessage = await messageService.sendMessage(selectedFriend._id, newMessage);
-            setMessages(prev => [...prev, sentMessage]);
+            if (editingMessage) {
+                await messageService.editMessage(editingMessage._id, newMessage);
+                setMessages(prev => 
+                    prev.map(msg => 
+                        msg._id === editingMessage._id 
+                            ? { ...msg, content: newMessage, edited: true } 
+                            : msg
+                    )
+                );
+                setEditingMessage(null);
+            } else {
+                const sentMessage = await messageService.sendMessage(selectedFriend._id, newMessage);
+                setMessages(prev => [...prev, sentMessage]);
+            }
             setNewMessage('');
         } catch (error) {
-            console.error('Error sending message:', error);
+            console.error('Error sending/editing message:', error);
         }
     };
 
@@ -166,13 +200,26 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                                         message.sender._id === selectedFriend._id
                                             ? 'bg-gray-100'
                                             : 'bg-[#008D9C] text-white'
-                                    }`}
+                                    } text-left relative group`}
                                 >
-                                    <p>{message.content}</p>
-                                    {message.edited && (
-                                        <span className="text-xs opacity-50 italic">(edited)</span>
+                                    {message.sender._id !== selectedFriend._id && (
+                                        <button
+                                            onClick={() => handleEditMessage(message)}
+                                            className="absolute -left-8 top-2 opacity-0 group-hover:opacity-100 
+                                                text-gray-500 hover:text-[#008D9C] transition-opacity"
+                                        >
+                                            <BsPencil className="h-4 w-4" />
+                                        </button>
                                     )}
-                                    <span className="flex justify-end text-xs opacity-70">
+                                    <p className="break-words">{message.content}</p>
+                                    {message.edited && (
+                                        <span className="text-xs opacity-50 italic block">(edited)</span>
+                                    )}
+                                    <span className={`flex ${
+                                        message.sender._id === selectedFriend._id 
+                                            ? 'justify-start' 
+                                            : 'justify-end'
+                                    } text-xs opacity-70`}>
                                         {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                 </div>
@@ -203,7 +250,7 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                         type="text"
                         value={newMessage}
                         onChange={handleTyping}
-                        placeholder="Start Chatting"
+                        placeholder={editingMessage ? "Edit message..." : "Start Chatting"}
                         className="flex-1 bg-[#F4F4F4] p-3 border-[#008D9C] border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008D9C]"
                     />
                     <button
