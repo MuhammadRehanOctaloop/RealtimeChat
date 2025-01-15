@@ -42,7 +42,7 @@ const NavBar = ({
   };
 
   return (
-    <div className="border-b border-t border-[#008D9C] mt-3 p-2 flex justify-between mx-5 items-center relative">
+    <div className="border-b border-t bg-[#F4F4F4] border-[#008D9C] mt-3 p-2 flex justify-between mx-5 items-center relative">
       <h2 className="text-1xl p-2 font-semibold text-[#008D9C]">CHATTING</h2>
       <div className="flex items-center gap-3">
         {/* Mobile Menu Button */}

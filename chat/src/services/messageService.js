@@ -2,8 +2,13 @@ import api from './api';
 
 export const messageService = {
     getConversation: async (userId) => {
-        const response = await api.get(`/api/v1/messages/conversation/${userId}`);
-        return response.data.data;
+        try {
+            const response = await api.get(`/api/v1/messages/conversation/${userId}`);
+            return Array.isArray(response.data.data) ? response.data.data : [];
+        } catch (error) {
+            console.error('Error fetching conversation:', error);
+            return [];
+        }
     },
 
     sendMessage: async (recipientId, content) => {

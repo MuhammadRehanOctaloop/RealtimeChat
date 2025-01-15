@@ -13,6 +13,7 @@ import { messageService } from '../services/messageService';
 import api from '../services/api';
 import { notificationService } from '../services/notificationService';
 import Notifications from './Notifications';
+import ChatBoard from './ChatBoard';
 
 const Dashboard = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -369,6 +370,10 @@ const Dashboard = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showNotifications]);
 
+  const handleFriendClick = (friend) => {
+    setSelectedFriend(friend);
+  };
+
   return (
     <div className="flex h-screen bg-white relative">
       {/* Overlay for mobile */}
@@ -427,9 +432,14 @@ const Dashboard = () => {
               ) : friends.length === 0 ? (
                 <div className="text-center text-gray-500 py-2">No friends yet</div>
               ) : (
-                friends.map((friend) => (
-                  <div key={friend._id} className="p-2 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
-                    <div className="flex items-center gap-3">
+                <div className="flex-1 overflow-y-auto">
+                  {friends.map((friend) => (
+                    <div
+                      key={friend._id}
+                      onClick={() => handleFriendClick(friend)}
+                      className={`flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer
+                        ${selectedFriend?._id === friend._id ? 'bg-gray-100' : ''}`}
+                    >
                       <div className="w-8 h-8 bg-[#008D9C] rounded-full flex items-center justify-center">
                         <BiUser className="h-5 w-5 text-white" />
                       </div>
@@ -440,8 +450,8 @@ const Dashboard = () => {
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  ))}
+                </div>
               )}
             </div>
           </div>
@@ -461,8 +471,8 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col bg-[#F4F4F4]">
+      {/* Main Content Area */}
+      <div className="flex-1 flex bg-[#F4F4F4] flex-col">
         <NavBar 
           isDropdownOpen={isDropdownOpen}
           setIsDropdownOpen={setIsDropdownOpen}
@@ -481,39 +491,20 @@ const Dashboard = () => {
           toggleSidebar={toggleSidebar}
           isSidebarOpen={isSidebarOpen}
         />
-
-        {/* Chat Messages */}
-        <div className="flex-1 flex flex-col justify-end">
-          <div className="overflow-y-auto p-4 space-y-4">
-            <div className="flex flex-col justify-end space-y-4">
-              <div className="flex text-left items-start space-x-2">
-                <div className="bg-[#008D9C] rounded-lg p-3 max-w-md">
-                  <p className="text-white text-left">Hi, how are you?</p>
-                </div>
-              </div>
-              
-              <div className="flex text-left items-start space-x-2">
-                <div className="bg-[#E8E8E8] text-left text-black text-left rounded-lg p-3 max-w-md">
-                  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
-                </div>
-              </div>
+        
+        {selectedFriend ? (
+          <ChatBoard
+            selectedFriend={selectedFriend}
+            onClose={() => setSelectedFriend(null)}
+          />
+        ) : (
+          <div className="flex-1 flex bg-[#F4F4F4] items-center justify-center">
+            <div className="text-center text-gray-500">
+              <p className="text-xl font-semibold">Welcome to Chat</p>
+              <p className="mt-2">Select a friend to start chatting</p>
             </div>
           </div>
-        </div>
-
-        {/* Message Input */}
-        <div className="p-4 pt-0">
-          <div className="flex items-center space-x-2 border-[#008D9C] rounded-lg bg-[#F4F4F4]">
-            <input
-              type="text"
-              placeholder="Start Chatting"
-              className="flex-1 bg-[#F4F4F4] p-3 border-[#008D9C] border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008D9C]"
-            />
-            <button className="bg-[#008D9C] absolute right-7 text-white p-2 rounded-lg">
-              <BsArrowRight className="h-6 w-6" />
-            </button>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
