@@ -17,10 +17,8 @@ const Dashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [friends, setFriends] = useState([]);
   const [selectedFriend, setSelectedFriend] = useState(null);
-  const [setMessages] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [setIsTyping] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -68,25 +66,6 @@ const Dashboard = () => {
 
     fetchNotifications();
     startNotificationsPolling();
-
-    // Update socket notification handler
-    socketService.onNotification((data) => {
-      console.log('Received notification via socket:', data);
-      setNotifications(prev => [data, ...prev]);
-      setUnreadCount(prev => prev + 1);
-    });
-
-    socketService.onMessage((message) => {
-      if (selectedFriend?._id === message.sender) {
-        setMessages(prev => [...prev, message]);
-      }
-    });
-
-    socketService.onTyping(({ userId, isTyping }) => {
-      if (selectedFriend?._id === userId) {
-        setIsTyping(isTyping);
-      }
-    });
 
     socketService.onFriendStatusChange(({ userId, online }) => {
       setFriends(prev => prev.map(friend => 
@@ -179,7 +158,7 @@ const Dashboard = () => {
         clearInterval(notificationsPollingInterval.current);
       }
     };
-  }, []);
+  });
 
   useEffect(() => {
     const fetchFriends = async () => {
@@ -411,7 +390,6 @@ const Dashboard = () => {
     notificationsPollingInterval.current = setInterval(async () => {
       try {
         const messageNotifications = await notificationService.getMessageNotifications();
-        const unreadNotifications = await notificationService.getUnreadNotifications();
         
         setNotifications(prev => {
           // Only update if there are changes
