@@ -1,16 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { RiLogoutBoxRLine } from "react-icons/ri";
-import { FiMenu } from "react-icons/fi";
-import { BsArrowRight } from "react-icons/bs";
 import { BiUser } from "react-icons/bi";
 import { IoMdClose } from "react-icons/io";
 import NavBar from './NavBar';
 import { friendService } from '../services/friendService';
 import { useAuth } from '../context/AuthContext';
 import { socketService } from '../services/socketService';
-import { messageService } from '../services/messageService';
-import api from '../services/api';
 import { notificationService } from '../services/notificationService';
 import Notifications from './Notifications';
 import ChatBoard from './ChatBoard';
@@ -21,17 +17,15 @@ const Dashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [friends, setFriends] = useState([]);
   const [selectedFriend, setSelectedFriend] = useState(null);
-  const [messages, setMessages] = useState([]);
+  const [setMessages] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [isTyping, setIsTyping] = useState(false);
-  const [messageInput, setMessageInput] = useState('');
+  const [setIsTyping] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const { user } = useAuth();
-  const typingTimeoutRef = useRef(null);
   const navigate = useNavigate();
   const [error, setError] = useState(null);
   const [friendRequests, setFriendRequests] = useState([]);
@@ -58,7 +52,6 @@ const Dashboard = () => {
         console.log('Fetching notifications...');
         
         const messageNotifications = await notificationService.getMessageNotifications();
-        const unreadNotifications = await notificationService.getUnreadNotifications();
         
         setNotifications(messageNotifications);
         // Calculate unread count from notifications
@@ -75,8 +68,6 @@ const Dashboard = () => {
 
     fetchNotifications();
     startNotificationsPolling();
-
-    const socket = socketService.connect(localStorage.getItem('accessToken'));
 
     // Update socket notification handler
     socketService.onNotification((data) => {
@@ -189,49 +180,6 @@ const Dashboard = () => {
       }
     };
   }, []);
-
-  // Handle friend selection
-  const handleFriendSelect = async (friend) => {
-    setSelectedFriend(friend);
-    try {
-      const messages = await messageService.getConversation(friend._id);
-      setMessages(messages);
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-    }
-  };
-
-  // Handle message sending
-  const handleSendMessage = async () => {
-    if (!messageInput.trim() || !selectedFriend) return;
-
-    try {
-      const message = await messageService.sendMessage(
-        selectedFriend._id,
-        messageInput
-      );
-      setMessages(prev => [...prev, message]);
-      setMessageInput('');
-      socketService.emitMessage(message);
-    } catch (error) {
-      console.error('Error sending message:', error);
-    }
-  };
-
-  // Handle typing indicator
-  const handleTyping = () => {
-    if (selectedFriend) {
-      socketService.emitTyping(selectedFriend._id, true);
-      
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-
-      typingTimeoutRef.current = setTimeout(() => {
-        socketService.emitTyping(selectedFriend._id, false);
-      }, 1000);
-    }
-  };
 
   useEffect(() => {
     const fetchFriends = async () => {
@@ -388,20 +336,6 @@ const Dashboard = () => {
       setShowNotifications(false);
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
-    }
-  };
-
-  // Add function to delete notification
-  const handleDeleteNotification = async (notificationId) => {
-    try {
-      await notificationService.deleteNotification(notificationId);
-      setNotifications(prev => prev.filter(notif => notif._id !== notificationId));
-      // Update unread count if needed
-      setUnreadCount(prev => 
-        notifications.find(n => n._id === notificationId && !n.read) ? prev - 1 : prev
-      );
-    } catch (error) {
-      console.error('Error deleting notification:', error);
     }
   };
 

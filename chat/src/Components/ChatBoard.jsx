@@ -15,7 +15,6 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
     const messagesEndRef = useRef(null);
     const messageContainerRef = useRef(null);
     const [editingMessage, setEditingMessage] = useState(null);
-    const [editText, setEditText] = useState('');
     const fileInputRef = useRef(null);
     const imageInputRef = useRef(null);
 
