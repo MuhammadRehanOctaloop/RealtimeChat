@@ -24,6 +24,7 @@ const Dashboard = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const { user } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState(null);
   const [friendRequests, setFriendRequests] = useState([]);
@@ -181,6 +182,7 @@ const Dashboard = () => {
 
   const handleLogout = () => {
     navigate('/');
+    logout();
   };
 
   const toggleSidebar = () => {

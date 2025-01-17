@@ -4,25 +4,32 @@ import api from '../services/api';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState(() => {
+        const savedUser = localStorage.getItem('user');
+        return savedUser ? JSON.parse(savedUser) : null;
+    });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const initAuth = async () => {
             const token = localStorage.getItem('accessToken');
-            if (token) {
+            if (token && !user) {
                 try {
                     const response = await api.post('/auth/refresh-token');
-                    setUser(response.data.user);
+                    const refreshedUser = response.data.user;
+                    setUser(refreshedUser);
+                    localStorage.setItem('user', JSON.stringify(refreshedUser));
                 } catch (error) {
+                    console.error('Token refresh failed:', error);
                     localStorage.removeItem('accessToken');
                     localStorage.removeItem('refreshToken');
+                    localStorage.removeItem('user');
                 }
             }
             setLoading(false);
         };
         initAuth();
-    }, []);
+    }, [user]);
 
     const register = async (username, email, password) => {
         try {
@@ -39,15 +46,12 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         try {
-            console.log('Attempting login with:', { email, password });
             const response = await api.post('/api/v1/auth/login', {
                 email,
                 password
             });
-            console.log('Login response:', response.data);
 
             const { data } = response.data;
-            
             if (!data.accessToken || !data.user) {
                 throw new Error('Invalid response from server');
             }
@@ -55,10 +59,10 @@ export const AuthProvider = ({ children }) => {
             const { accessToken, refreshToken, user: userData } = data;
             localStorage.setItem('accessToken', accessToken);
             localStorage.setItem('refreshToken', refreshToken);
+            localStorage.setItem('user', JSON.stringify(userData));
             setUser(userData);
             return userData;
         } catch (error) {
-            console.error('Login error:', error.response || error);
             if (error.response?.data?.message) {
                 throw new Error(error.response.data.message);
             } else {
@@ -75,6 +79,7 @@ export const AuthProvider = ({ children }) => {
         } finally {
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
+            localStorage.removeItem('user');
             setUser(null);
         }
     };
@@ -86,4 +91,4 @@ export const AuthProvider = ({ children }) => {
     );
 };
 
-export const useAuth = () => useContext(AuthContext); 
+export const useAuth = () => useContext(AuthContext);

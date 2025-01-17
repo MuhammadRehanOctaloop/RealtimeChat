@@ -13,7 +13,7 @@ const ProtectedRoute = ({ children }) => {
     
     useEffect(() => {
         if (!loading && !user) {
-            navigate('/', { replace: true });
+            navigate('/dashboard', { replace: true });
         }
     }, [loading, user, navigate]);
 
