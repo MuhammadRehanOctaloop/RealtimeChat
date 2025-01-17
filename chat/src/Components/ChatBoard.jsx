@@ -19,6 +19,7 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
     const imageInputRef = useRef(null);
     const [errorMessage, setErrorMessage] = useState('');
     const CHARACTER_LIMIT = 10000;
+    const [isButtonDisabled, setIsButtonDisabled] = useState(false);
 
     const scrollToBottom = () => {
         if (messageContainerRef.current) {
@@ -128,6 +129,7 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
         if (!newMessage.trim() || newMessage.length > CHARACTER_LIMIT) return;
 
         try {
+            setIsButtonDisabled(true);
             if (editingMessage) {
                 await messageService.editMessage(editingMessage._id, newMessage);
                 setMessages(prev => 
@@ -143,8 +145,10 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                 setMessages(prev => [...prev, sentMessage]);
             }
             setNewMessage('');
+            setTimeout(() => setIsButtonDisabled(false), 3000);
         } catch (error) {
             console.error('Error sending/editing message:', error);
+            setIsButtonDisabled(false);
         }
     };
 
@@ -367,7 +371,7 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                     />
                     <button
                         type="submit"
-                        disabled={!newMessage.trim() || newMessage.length > CHARACTER_LIMIT } 
+                        disabled={!newMessage.trim() || newMessage.length > CHARACTER_LIMIT || isButtonDisabled} 
                         className="bg-[#008D9C] absolute right-2 text-white p-2 rounded-lg hover:bg-[#007483] disabled:opacity-50"
                     >
                         <BsArrowRight className="h-6 w-6" />
