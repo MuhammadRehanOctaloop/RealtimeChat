@@ -17,6 +17,8 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
     const [editingMessage, setEditingMessage] = useState(null);
     const fileInputRef = useRef(null);
     const imageInputRef = useRef(null);
+    const [errorMessage, setErrorMessage] = useState('');
+    const CHARACTER_LIMIT = 10000;
 
     const scrollToBottom = () => {
         if (messageContainerRef.current) {
@@ -123,7 +125,7 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
 
     const handleSendMessage = async (e) => {
         e.preventDefault();
-        if (!newMessage.trim()) return;
+        if (!newMessage.trim() || newMessage.length > CHARACTER_LIMIT) return;
 
         try {
             if (editingMessage) {
@@ -147,8 +149,14 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
     };
 
     const handleTyping = (e) => {
-        setNewMessage(e.target.value);
-        socketService.emitTyping(selectedFriend._id, e.target.value.length > 0);
+        const message = e.target.value;
+        if (message.length > CHARACTER_LIMIT) {
+            setErrorMessage(`Message exceeds the limit of ${CHARACTER_LIMIT} characters.`);
+        } else {
+            setErrorMessage('');
+        }
+        setNewMessage(message);
+        socketService.emitTyping(selectedFriend._id, message.length > 0);
     };
 
     const handleFileSelect = async (event) => {
@@ -359,15 +367,18 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                     />
                     <button
                         type="submit"
-                        disabled={!newMessage.trim()}
+                        disabled={!newMessage.trim() || newMessage.length > CHARACTER_LIMIT } 
                         className="bg-[#008D9C] absolute right-2 text-white p-2 rounded-lg hover:bg-[#007483] disabled:opacity-50"
                     >
                         <BsArrowRight className="h-6 w-6" />
                     </button>
                 </div>
+                {errorMessage && (
+                    <p className="text-red-500 text-sm mt-2">{errorMessage}</p>
+                )}
             </form>
         </div>
     );
 };
 
-export default ChatBoard; 
+export default ChatBoard;
