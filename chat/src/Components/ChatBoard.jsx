@@ -74,7 +74,7 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
             } catch (error) {
                 console.error('Error polling messages:', error);
             }
-        }, 2000);
+        }, 50000);
     };
 
     const loadMessages = async () => {
@@ -145,7 +145,7 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                 setMessages(prev => [...prev, sentMessage]);
             }
             setNewMessage('');
-            setTimeout(() => setIsButtonDisabled(false), 3000);
+            setTimeout(() => setIsButtonDisabled(false), 50000);
         } catch (error) {
             console.error('Error sending/editing message:', error);
             setIsButtonDisabled(false);
@@ -268,7 +268,7 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                                         </button>
                                     )}
                                     {message.type === 'image' ? (
-                                        <img 
+                                        <image 
                                             src={message.fileUrl} 
                                             alt="Shared image" 
                                             className="rounded-lg max-w-full cursor-pointer hover:opacity-90"

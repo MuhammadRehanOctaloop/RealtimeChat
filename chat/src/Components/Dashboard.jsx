@@ -287,7 +287,7 @@ const Dashboard = () => {
 
     fetchFriendRequests();
     // Check for new requests every 30 seconds
-    const interval = setInterval(fetchFriendRequests, 30000);
+    const interval = setInterval(fetchFriendRequests, 50000);
 
     return () => clearInterval(interval);
   }, []);
@@ -385,8 +385,8 @@ const Dashboard = () => {
       } catch (error) {
         console.error('Error polling friends:', error);
       }
-    }, 2000);
-  };
+    }, 50000);
+  }; 
 
   const startNotificationsPolling = () => {
     notificationsPollingInterval.current = setInterval(async () => {
@@ -409,7 +409,7 @@ const Dashboard = () => {
       } catch (error) {
         console.error('Error polling notifications:', error);
       }
-    }, 2000);
+    }, 50000);
   };
 
   return (
