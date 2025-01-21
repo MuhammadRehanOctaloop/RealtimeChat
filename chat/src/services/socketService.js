@@ -22,6 +22,8 @@ export const socketService = {
     // Message events
     onMessage: (callback) => {
         if (socket) {
+            console.log('----------------inside onMessage-----------------');
+            
             socket.on('new_message', (data) => {
                 console.log('Received new message:', data);
                 callback(data);
@@ -80,7 +82,7 @@ export const socketService = {
     emitMessage: (message) => {
         if (socket) {
             console.log('Emitting message:', message);
-            socket.emit('message', message);
+            socket.emit('new_message', message);
         }
     },
 

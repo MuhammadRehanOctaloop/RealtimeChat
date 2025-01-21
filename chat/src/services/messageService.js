@@ -44,7 +44,9 @@ export const messageService = {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('recipientId', recipientId);
-
+            formData.append('type', 'file');
+            formData.append('contnent-type', file.type);
+            
             const response = await api.post('/api/v1/messages', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
@@ -62,7 +64,9 @@ export const messageService = {
             const formData = new FormData();
             formData.append('file', image);
             formData.append('recipientId', recipientId);
-
+            formData.append('type', 'file');
+            formData.append('contnent-type', image.type);
+            
             const response = await api.post('/api/v1/messages', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'

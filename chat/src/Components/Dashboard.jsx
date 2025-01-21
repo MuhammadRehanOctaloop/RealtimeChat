@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { io } from 'socket.io-client';
 import { useNavigate } from "react-router-dom";
 import { RiLogoutBoxRLine } from "react-icons/ri";
 import { BiUser } from "react-icons/bi";
@@ -42,16 +43,43 @@ const Dashboard = () => {
     setUnreadCount(prev => prev + 1);
   };
 
+
+
   // Initialize WebSocket connection
   useEffect(() => {
+
+
+
+    const URL = 'http://localhost:3001';
+
+    const socket = io(URL, {
+      "force new connection": true,
+      "reconnectionAttempts": "infinity",
+      "timeout": 10000,
+      "transports": ["websocket"]
+    });
+
+    socket.timeout(5000).emit('myevent', 'Hello from the client!');
+
+    socket.on('connect', () => {
+      console.log('----------------Connected to server-------------------');
+      socket.on('myevent', (data) => {
+        console.log('Received message from server:', data);
+      })
+    })
+
+    socketService.connect();
+    setTimeout(() => {
+      socketService.emitMessage('Hello from the client!');
+    }, 5000);
     const fetchNotifications = async () => {
       try {
         setNotificationsLoading(true);
         setNotificationsError(null);
         console.log('Fetching notifications...');
-        
+
         const messageNotifications = await notificationService.getMessageNotifications();
-        
+
         setNotifications(messageNotifications);
         // Calculate unread count from notifications
         const unreadCount = messageNotifications.filter(notif => !notif.read).length;
@@ -64,12 +92,34 @@ const Dashboard = () => {
         setNotificationsLoading(false);
       }
     };
+    const startNotificationsPolling = () => {
+      notificationsPollingInterval.current = setInterval(async () => {
+        try {
+          const messageNotifications = await notificationService.getMessageNotifications();
 
+          setNotifications(prev => {
+            // Only update if there are changes
+            if (JSON.stringify(prev) !== JSON.stringify(messageNotifications)) {
+              return messageNotifications;
+            }
+            return prev;
+          }, 5000);
+
+          // Update unread count based on unread notifications
+          const newUnreadCount = messageNotifications.filter(notif => !notif.read).length;
+          if (newUnreadCount !== unreadCount) {
+            setUnreadCount(newUnreadCount);
+          }
+        } catch (error) {
+          console.error('Error polling notifications:', error);
+        }
+      }, 50000);
+    };
     fetchNotifications();
     startNotificationsPolling();
 
     socketService.onFriendStatusChange(({ userId, online }) => {
-      setFriends(prev => prev.map(friend => 
+      setFriends(prev => prev.map(friend =>
         friend._id === userId ? { ...friend, online } : friend
       ));
     });
@@ -78,8 +128,8 @@ const Dashboard = () => {
     socketService.onFriendRequest((data) => {
       console.log('Received friend request via socket:', data);
       setFriendRequests(prev => {
-        const exists = prev.some(req => 
-          req._id === data._id || 
+        const exists = prev.some(req =>
+          req._id === data._id ||
           (req.sender._id === data.sender._id && req.recipient._id === data.recipient._id)
         );
         if (!exists) {
@@ -113,53 +163,56 @@ const Dashboard = () => {
     // Listen for new notifications
     socketService.onNotification((notification) => {
       console.log('New notification received:', notification);
-      
+
       // Add new notification to the list
       setNotifications(prev => [notification, ...prev]);
-      
+
       // Only increment if notification is not already read
       if (!notification.read) {
-          setUnreadCount(prev => prev + 1);
+        setUnreadCount(prev => prev + 1);
       }
-      
+
       // Show browser notification if it's a message
       if (notification.type === 'message') {
-          notificationUtils.showNotification(
-              `New message from ${notification.sender.username}`,
-              {
-                  body: notification.messageId.content,
-                  tag: 'message-notification',
-                  data: {
-                      notificationId: notification._id,
-                      senderId: notification.sender._id
-                  }
-              }
-          );
+        notificationUtils.showNotification(
+          `New message from ${notification.sender.username}`,
+          {
+            body: notification.messageId.content,
+            tag: 'message-notification',
+            data: {
+              notificationId: notification._id,
+              senderId: notification.sender._id
+            }
+          }
+        );
       }
     });
 
     // Listen for notification updates
     socketService.onNotificationUpdated(({ notificationId, read }) => {
-      setNotifications(prev => 
-        prev.map(notif => 
-          notif._id === notificationId 
-            ? { ...notif, read } 
+      setNotifications(prev =>
+        prev.map(notif =>
+          notif._id === notificationId
+            ? { ...notif, read }
             : notif
         )
       );
-      
+
       if (read) {
         setUnreadCount(prev => Math.max(0, prev - 1));
       }
     });
 
+    socketService.onMessage((message) => {
+      console.log('Received message via socket:', message);
+    });
     return () => {
       socketService.disconnect();
       if (notificationsPollingInterval.current) {
         clearInterval(notificationsPollingInterval.current);
       }
     };
-  });
+  }, []);
 
   useEffect(() => {
     const fetchFriends = async () => {
@@ -202,8 +255,8 @@ const Dashboard = () => {
       const results = await friendService.searchUsers(value);
       // Filter out current user and existing friends
       const filteredResults = results.filter(
-        searchUser => searchUser._id !== user?._id && 
-        !friends.some(friend => friend._id === searchUser._id)
+        searchUser => searchUser._id !== user?._id &&
+          !friends.some(friend => friend._id === searchUser._id)
       );
       setSearchResults(filteredResults);
     } catch (error) {
@@ -219,7 +272,7 @@ const Dashboard = () => {
     try {
       setSearchLoading(true);
       const result = await friendService.sendFriendRequest(userId);
-      
+
       if (!result.success) {
         // If it's a duplicate request, just close the dropdown
         if (result.error === 'Friend request already sent') {
@@ -229,7 +282,7 @@ const Dashboard = () => {
         console.error('Error:', result.error);
         return result;
       }
-      
+
       // Remove user from search results
       setSearchResults(prev => prev.filter(user => user._id !== userId));
       return result;
@@ -296,8 +349,8 @@ const Dashboard = () => {
   const handleMarkAsRead = async (notificationId) => {
     try {
       await notificationService.markAsRead(notificationId);
-      setNotifications(prev => 
-        prev.map(notif => 
+      setNotifications(prev =>
+        prev.map(notif =>
           notif._id === notificationId ? { ...notif, read: true } : notif
         )
       );
@@ -323,10 +376,10 @@ const Dashboard = () => {
   // Add click outside handler for notifications
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (showNotifications && 
-          notificationsRef.current && 
-          !notificationsRef.current.contains(event.target) &&
-          !notificationButtonRef.current.contains(event.target)) {
+      if (showNotifications &&
+        notificationsRef.current &&
+        !notificationsRef.current.contains(event.target) &&
+        !notificationButtonRef.current.contains(event.target)) {
         setShowNotifications(false);
       }
     };
@@ -386,44 +439,22 @@ const Dashboard = () => {
         console.error('Error polling friends:', error);
       }
     }, 50000);
-  }; 
-
-  const startNotificationsPolling = () => {
-    notificationsPollingInterval.current = setInterval(async () => {
-      try {
-        const messageNotifications = await notificationService.getMessageNotifications();
-        
-        setNotifications(prev => {
-          // Only update if there are changes
-          if (JSON.stringify(prev) !== JSON.stringify(messageNotifications)) {
-            return messageNotifications;
-          }
-          return prev;
-        });
-        
-        // Update unread count based on unread notifications
-        const newUnreadCount = messageNotifications.filter(notif => !notif.read).length;
-        if (newUnreadCount !== unreadCount) {
-            setUnreadCount(newUnreadCount);
-        }
-      } catch (error) {
-        console.error('Error polling notifications:', error);
-      }
-    }, 50000);
   };
+
+
 
   return (
     <div className="flex h-screen bg-white relative">
       {/* Overlay for mobile */}
       {isSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
           onClick={toggleSidebar}
         />
       )}
 
       {/* Left Sidebar */}
-      <div 
+      <div
         className={`
           fixed lg:static w-[250px] bg-white border-r flex flex-col h-full z-40
           transform transition-transform duration-300 ease-in-out
@@ -431,7 +462,7 @@ const Dashboard = () => {
         `}
       >
         {/* Close button for mobile */}
-        <button 
+        <button
           onClick={toggleSidebar}
           className="lg:hidden absolute pl-2 pr-2 top-4 right-4 text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100"
         >
@@ -439,9 +470,9 @@ const Dashboard = () => {
         </button>
 
         <div className="p-4 flex-1 overflow-y-auto">
-          
+
           <h1 className="text-xl text-center font-bold text-[#008D9C] mb-4 mt-4">CHATTING</h1>
-          
+
           <div className="flex justify-center ml-2 mr-2 relative">
             {showNotifications && (
               <div ref={notificationsRef} className="absolute left-5 top-full mt-2 z-50">
@@ -461,7 +492,7 @@ const Dashboard = () => {
           <div className="mt-6">
             <hr className="border-t-2 border-[#008D9C]" />
             <h2 className="text-sm font-medium text-center text-black mt-3">Friends</h2>
-            
+
             <div className="space-y-2 mt-3">
               {loading ? (
                 <div className="text-center text-gray-500 py-2">Loading friends...</div>
@@ -478,26 +509,26 @@ const Dashboard = () => {
                       className={`flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer
                         ${selectedFriend?._id === friend._id ? 'bg-gray-100' : ''}`}
                     >
-                  <div className="w-8 h-8 bg-[#008D9C] rounded-full flex items-center justify-center">
-                    <BiUser className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
+                      <div className="w-8 h-8 bg-[#008D9C] rounded-full flex items-center justify-center">
+                        <BiUser className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
                         <div className="text-sm font-medium text-gray-500">{friend.username}</div>
                         <div className="text-xs text-gray-400">
                           {friend.online ? 'Online' : 'Offline'}
-                  </div>
-                </div>
-              </div>
+                        </div>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
             </div>
           </div>
         </div>
-        
+
         {/* Logout Button */}
         <div className="pl-6 p-4 pr-6">
-          <button 
+          <button
             onClick={handleLogout}
             className="w-full bg-gradient-to-r from-[#008D9C] to-[#003136] text-white py-2 px-3 rounded-lg hover:opacity-90 transition-opacity"
           >
@@ -513,7 +544,7 @@ const Dashboard = () => {
       <div className="flex-1 flex bg-[#F4F4F4] flex-col">
         {/* Show NavBar only when no friend is selected */}
         {!selectedFriend && (
-          <NavBar 
+          <NavBar
             isDropdownOpen={isDropdownOpen}
             setIsDropdownOpen={setIsDropdownOpen}
             searchQuery={searchQuery}
