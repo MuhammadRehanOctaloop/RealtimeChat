@@ -125,21 +125,6 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
         notificationUtils.requestPermission();
     }, []);
 
-    const startMessagePolling = () => {
-        pollingInterval.current = setInterval(async () => {
-            try {
-                const conversation = await messageService.getConversation(selectedFriend._id);
-                if (conversation.length > messages.length) {
-                    setMessages(conversation);
-                }
-            } catch (error) {
-                console.error('Error polling messages:', error);
-            }
-        }, 50000);
-    };
-
-
-
     socketService.onTyping(({ isTyping: typing, userId }) => {
         if (userId === selectedFriend._id) {
             setIsTyping(typing);
