@@ -21,6 +21,7 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
     const CHARACTER_LIMIT = 10000;
     const [isButtonDisabled, setIsButtonDisabled] = useState(false);
 
+
     const scrollToBottom = () => {
         if (messageContainerRef.current) {
             messageContainerRef.current.scrollTop = messageContainerRef.current.scrollHeight;
@@ -38,11 +39,71 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
     };
 
     useEffect(() => {
-        if (selectedFriend) {
+        console.log('--------------------inside useEffect-----------------------');
+        
+        let mysocket = socketService.connect();
+        console.log('mysocket:', mysocket);
+        mysocket.on('new_message', (data) => {
+            console.log('Received new message:', data);
+        })
+        
+        const loadMessages = async () => {
+            try {
+                setLoading(true);
+                const conversation = await messageService.getConversation(selectedFriend._id);
+                setMessages(Array.isArray(conversation) ? conversation : []);
+                setTimeout(scrollToBottom, 100);
+            } catch (error) {
+                console.error('Error loading messages:', error);
+                setMessages([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        const setupSocketListeners = () => {
+            console.log('--------------------inside setupSocketListeners-----------------------');
+            
+            socketService.onMessage((message) => {
+                console.log('Received new message:', message);
+                if (message.sender._id === selectedFriend._id ||
+                    message.recipient._id === selectedFriend._id) {
+                    setMessages(prev => Array.isArray(prev) ? [...prev, message] : [message]);
+                    if (!isNearBottom) {
+                        setHasNewMessages(true);
+                    }
+                    if (message.sender._id === selectedFriend._id) {
+                        notificationUtils.showNotification(
+                            `New message from ${selectedFriend.username}`,
+                            {
+                                body: message.content,
+                                tag: 'chat-message',
+                                renotify: true
+                            }
+                        );
+                    }
+                }
+            });
+        };
+
+        const startMessagePolling = () => {
+            pollingInterval.current = setInterval(async () => {
+                try {
+                    const conversation = await messageService.getConversation(selectedFriend._id);
+                    if (conversation.length > messages.length) {
+                        setMessages(conversation);
+                    }
+                } catch (error) {
+                    console.error('Error polling messages:', error);
+                }
+            }, 50000);
+        };
+
+        // if (selectedFriend) {
             loadMessages();
             setupSocketListeners();
             startMessagePolling();
-        }
+        // }
 
         return () => {
             socketService.disconnect();
@@ -77,47 +138,14 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
         }, 50000);
     };
 
-    const loadMessages = async () => {
-        try {
-            setLoading(true);
-            const conversation = await messageService.getConversation(selectedFriend._id);
-            setMessages(Array.isArray(conversation) ? conversation : []);
-            setTimeout(scrollToBottom, 100);
-        } catch (error) {
-            console.error('Error loading messages:', error);
-            setMessages([]);
-        } finally {
-            setLoading(false);
+
+
+    socketService.onTyping(({ isTyping: typing, userId }) => {
+        if (userId === selectedFriend._id) {
+            setIsTyping(typing);
         }
-    };
+    });
 
-    const setupSocketListeners = () => {
-        socketService.onMessage((message) => {
-            if (message.sender._id === selectedFriend._id || 
-                message.recipient._id === selectedFriend._id) {
-                setMessages(prev => Array.isArray(prev) ? [...prev, message] : [message]);
-                if (!isNearBottom) {
-                    setHasNewMessages(true);
-                }
-                if (message.sender._id === selectedFriend._id) {
-                    notificationUtils.showNotification(
-                        `New message from ${selectedFriend.username}`,
-                        {
-                            body: message.content,
-                            tag: 'chat-message',
-                            renotify: true
-                        }
-                    );
-                }
-            }
-        });
-
-        socketService.onTyping(({ isTyping: typing, userId }) => {
-            if (userId === selectedFriend._id) {
-                setIsTyping(typing);
-            }
-        });
-    };
 
     const handleEditMessage = (message) => {
         setEditingMessage(message);
@@ -132,10 +160,10 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
             setIsButtonDisabled(true);
             if (editingMessage) {
                 await messageService.editMessage(editingMessage._id, newMessage);
-                setMessages(prev => 
-                    prev.map(msg => 
-                        msg._id === editingMessage._id 
-                            ? { ...msg, content: newMessage, edited: true } 
+                setMessages(prev =>
+                    prev.map(msg =>
+                        msg._id === editingMessage._id
+                            ? { ...msg, content: newMessage, edited: true }
                             : msg
                     )
                 );
@@ -143,9 +171,10 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
             } else {
                 const sentMessage = await messageService.sendMessage(selectedFriend._id, newMessage);
                 setMessages(prev => [...prev, sentMessage]);
+                socketService.emitMessage(sentMessage);
             }
             setNewMessage('');
-            setTimeout(() => setIsButtonDisabled(false), 50000);
+            setTimeout(() => setIsButtonDisabled(false), 1000);
         } catch (error) {
             console.error('Error sending/editing message:', error);
             setIsButtonDisabled(false);
@@ -223,7 +252,7 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                         )}
                     </div>
                 </div>
-                <button 
+                <button
                     onClick={onClose}
                     className="text-gray-500 hover:text-gray-700"
                 >
@@ -232,9 +261,9 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
             </div>
 
             {/* Messages Area */}
-            <div 
+            <div
                 ref={messageContainerRef}
-                className="flex-1 overflow-y-auto p-4 space-y-4 mt-2 relative" 
+                className="flex-1 overflow-y-auto p-4 space-y-4 mt-2 relative"
                 style={{ height: 'calc(100vh - 160px)' }}
                 onScroll={handleScroll}
             >
@@ -247,16 +276,14 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                         {messages.map((message) => (
                             <div
                                 key={message._id || Math.random()}
-                                className={`flex ${
-                                    message.sender._id === selectedFriend._id ? 'justify-start' : 'justify-end'
-                                }`}
+                                className={`flex ${message.sender._id === selectedFriend._id ? 'justify-start' : 'justify-end'
+                                    }`}
                             >
                                 <div
-                                    className={`max-w-[70%] rounded-lg p-3 ${
-                                        message.sender._id === selectedFriend._id
+                                    className={`max-w-[70%] rounded-lg p-3 ${message.sender._id === selectedFriend._id
                                             ? 'bg-gray-100'
                                             : 'bg-[#008D9C] text-white'
-                                    } text-left relative group`}
+                                        } text-left relative group`}
                                 >
                                     {message.sender._id !== selectedFriend._id && message.type === 'text' && (
                                         <button
@@ -268,15 +295,15 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                                         </button>
                                     )}
                                     {message.type === 'image' ? (
-                                        <image 
-                                            src={message.fileUrl} 
-                                            alt="Shared image" 
+                                        <img
+                                            src={message.fileUrl}
+                                            alt="Shared image"
                                             className="rounded-lg max-w-full cursor-pointer hover:opacity-90"
                                             onClick={() => window.open(message.fileUrl, '_blank')}
                                         />
                                     ) : message.type === 'file' ? (
                                         <div className="space-y-2">
-                                            <a 
+                                            <a
                                                 href={message.fileUrl}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
@@ -295,11 +322,10 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                                     {message.edited && message.type === 'text' && (
                                         <span className="text-xs opacity-50 italic block">(edited)</span>
                                     )}
-                                    <span className={`flex ${
-                                        message.sender._id === selectedFriend._id 
-                                            ? 'justify-start' 
+                                    <span className={`flex ${message.sender._id === selectedFriend._id
+                                            ? 'justify-start'
                                             : 'justify-end'
-                                    } text-xs opacity-70`}>
+                                        } text-xs opacity-70`}>
                                         {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                 </div>
@@ -371,7 +397,7 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                     />
                     <button
                         type="submit"
-                        disabled={!newMessage.trim() || newMessage.length > CHARACTER_LIMIT || isButtonDisabled} 
+                        disabled={!newMessage.trim() || newMessage.length > CHARACTER_LIMIT || isButtonDisabled}
                         className="bg-[#008D9C] absolute right-2 text-white p-2 rounded-lg hover:bg-[#007483] disabled:opacity-50"
                     >
                         <BsArrowRight className="h-6 w-6" />

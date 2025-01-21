@@ -44,6 +44,7 @@ export const messageService = {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('recipientId', recipientId);
+            formData.append('content', recipientId);
             formData.append('type', 'file');
             formData.append('contnent-type', file.type);
             
@@ -64,6 +65,7 @@ export const messageService = {
             const formData = new FormData();
             formData.append('file', image);
             formData.append('recipientId', recipientId);
+            formData.append('content', recipientId);
             formData.append('type', 'file');
             formData.append('contnent-type', image.type);
             
