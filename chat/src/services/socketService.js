@@ -3,10 +3,16 @@ import io from 'socket.io-client';
 let socket = null;
 
 export const socketService = {
-    connect: (token) => {
-        socket = io('http://localhost:3001', {
-            auth: { token }
-        });
+
+        connect: () => {
+            const user = JSON.parse(localStorage.getItem('user')); // Get user from localStorage
+            const userId = user ? user._id : null; // Get userId from user object
+            const token = localStorage.getItem('accessToken');
+            console.log(user._id);
+    
+            socket = io('http://localhost:3001', {
+                auth: { token, userId }  // Pass userId here
+            });
 
         socket.on('connect', () => {
             console.log('Connected to WebSocket');
