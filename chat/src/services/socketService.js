@@ -7,8 +7,7 @@ export const socketService = {
         const user = JSON.parse(localStorage.getItem('user')); // Get user from localStorage
         const userId = user ? user._id : null; // Get userId from user object
         const token = localStorage.getItem('accessToken');
-        console.log('Connecting with userId:', userId, 'and token:', token); // Debug log
-
+    
         socket = io('http://localhost:3001', {
             auth: { token, userId }  // Pass userId here
         });
@@ -17,7 +16,6 @@ export const socketService = {
             console.log('Connected to WebSocket');
             if (userId) {
                 socket.emit('join', userId); // Join the user's room
-                console.log(`User ${userId} joined their room`);
             }
         });
 
@@ -35,7 +33,6 @@ export const socketService = {
     // Message events
     onMessage: (callback) => {
         if (socket) {
-            console.log('----------------inside onMessage-----------------');
             socket.on('newMessage', (data) => {
                 console.log('Received new message:', data);
                 callback(data);
@@ -44,7 +41,11 @@ export const socketService = {
     },
 
     onTyping: (callback) => {
-        if (socket) socket.on('userTyping', callback);
+        if (socket) {
+            socket.on('userTyping', (data) => {
+                callback(data);
+            });
+        }
     },
 
     // Friend events
@@ -87,8 +88,10 @@ export const socketService = {
     },
 
     // Emitters
-    emitTyping: (recipientId, isTyping) => {
-        if (socket) socket.emit('userTyping', { recipientId, isTyping });
+    emitTyping: ({ senderId, receiverId, typing }) => {
+        if (socket) {
+            socket.emit('typing', { senderId, receiverId, typing });
+        }
     },
 
     emitMessage: (message) => {
@@ -106,8 +109,8 @@ export const socketService = {
         if (socket) socket.emit('friend_request_response', { requestId, accepted });
     },
 
-    emitStopTyping: (recipientId) => {
-        if (socket) socket.emit('stopTyping', { recipientId });
+    emitStopTyping: ({ senderId, receiverId, typing }) => {
+        if (socket) socket.emit('stopTyping', { senderId, receiverId, typing });
     },
 
     emitNotificationRead: (notificationId) => {

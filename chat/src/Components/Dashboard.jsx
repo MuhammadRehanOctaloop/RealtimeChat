@@ -62,7 +62,6 @@ const Dashboard = () => {
     socket.timeout(5000).emit('myevent', 'Hello from the client!');
 
     socket.on('connect', () => {
-      console.log('----------------Connected to server-------------------');
       socket.on('myevent', (data) => {
         console.log('Received message from server:', data);
       })
@@ -76,7 +75,6 @@ const Dashboard = () => {
       try {
         setNotificationsLoading(true);
         setNotificationsError(null);
-        console.log('Fetching notifications...');
 
         const messageNotifications = await notificationService.getMessageNotifications();
 
@@ -162,8 +160,6 @@ const Dashboard = () => {
 
     // Listen for new notifications
     socketService.onNotification((notification) => {
-      console.log('New notification received:', notification);
-
       // Add new notification to the list
       setNotifications(prev => [notification, ...prev]);
 
@@ -203,9 +199,6 @@ const Dashboard = () => {
       }
     });
 
-    socketService.onMessage((message) => {
-      console.log('Received message via socket:', message);
-    });
     return () => {
       socketService.disconnect();
       if (notificationsPollingInterval.current) {
@@ -325,9 +318,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchFriendRequests = async () => {
       try {
-        console.log('Fetching friend requests...');
         const requests = await friendService.getFriendRequests();
-        console.log('Received friend requests:', requests);
         if (Array.isArray(requests)) {
           setFriendRequests(requests);
         } else {

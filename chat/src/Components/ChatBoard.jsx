@@ -17,6 +17,7 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
     const [editingMessage, setEditingMessage] = useState(null);
     const fileInputRef = useRef(null);
     const imageInputRef = useRef(null);
+    const typingTimeout = useRef(null);
     const [errorMessage, setErrorMessage] = useState('');
     const CHARACTER_LIMIT = 10000;
     const [isButtonDisabled, setIsButtonDisabled] = useState(false);
@@ -39,13 +40,9 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
     };
 
     useEffect(() => {
-        console.log('--------------------inside useEffect-----------------------');
         
-        let mysocket = socketService.connect();
-        console.log('mysocket:', mysocket);
-        mysocket.on('new_message', (data) => {
-            console.log('Received new message:', data);
-        })
+        socketService.connect();
+    
         
         const loadMessages = async () => {
             try {
@@ -62,10 +59,8 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
         };
 
         const setupSocketListeners = () => {
-            console.log('--------------------inside setupSocketListeners-----------------------');
-            
+
             socketService.onMessage((message) => {
-                console.log('Received new message:', message);
                 if (message.sender._id === selectedFriend._id ||
                     message.recipient._id === selectedFriend._id) {
                     setMessages(prev => Array.isArray(prev) ? [...prev, message] : [message]);
@@ -82,6 +77,11 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                             }
                         );
                     }
+                }
+            });
+            socketService.onTyping(({ isTyping: typing, senderId }) => {
+                if (senderId === selectedFriend._id) {
+                    setIsTyping(typing);
                 }
             });
         };
@@ -125,12 +125,13 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
         notificationUtils.requestPermission();
     }, []);
 
-    socketService.onTyping(({ isTyping: typing, userId }) => {
-        if (userId === selectedFriend._id) {
-            setIsTyping(typing);
-        }
-    });
-
+    useEffect(() => {
+        socketService.onTyping(({ typing, senderId }) => {
+            if (senderId === selectedFriend._id) {
+                setIsTyping(typing);
+            }
+        });
+    }, [selectedFriend]);
 
     const handleEditMessage = (message) => {
         setEditingMessage(message);
@@ -174,7 +175,13 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
             setErrorMessage('');
         }
         setNewMessage(message);
-        socketService.emitTyping(selectedFriend._id, message.length > 0);
+        const user = JSON.parse(localStorage.getItem('user')); // Get user from localStorage
+        const senderId = user ? user._id : null; // Get userId from user object
+        socketService.emitTyping({ senderId, receiverId: selectedFriend._id, typing: message.length > 0 });
+        clearTimeout(typingTimeout.current);
+        typingTimeout.current = setTimeout(() => {
+        socketService.emitStopTyping({ senderId, receiverId: selectedFriend._id });
+        }, 3000);
     };
 
     const handleFileSelect = async (event) => {
