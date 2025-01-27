@@ -3,19 +3,26 @@ import io from 'socket.io-client';
 let socket = null;
 
 export const socketService = {
+    connect: () => {
+        const user = JSON.parse(localStorage.getItem('user')); // Get user from localStorage
+        const userId = user ? user._id : null; // Get userId from user object
+        const token = localStorage.getItem('accessToken');
+        console.log('Connecting with userId:', userId, 'and token:', token); // Debug log
 
-        connect: () => {
-            const user = JSON.parse(localStorage.getItem('user')); // Get user from localStorage
-            const userId = user ? user._id : null; // Get userId from user object
-            const token = localStorage.getItem('accessToken');
-            console.log(user._id);
-    
-            socket = io('http://localhost:3001', {
-                auth: { token, userId }  // Pass userId here
-            });
+        socket = io('http://localhost:3001', {
+            auth: { token, userId }  // Pass userId here
+        });
 
         socket.on('connect', () => {
             console.log('Connected to WebSocket');
+            if (userId) {
+                socket.emit('join', userId); // Join the user's room
+                console.log(`User ${userId} joined their room`);
+            }
+        });
+
+        socket.on('connect_error', (err) => {
+            console.error('Connection error:', err.message);
         });
 
         return socket;
@@ -29,8 +36,7 @@ export const socketService = {
     onMessage: (callback) => {
         if (socket) {
             console.log('----------------inside onMessage-----------------');
-            
-            socket.on('new_message', (data) => {
+            socket.on('newMessage', (data) => {
                 console.log('Received new message:', data);
                 callback(data);
             });
@@ -38,7 +44,7 @@ export const socketService = {
     },
 
     onTyping: (callback) => {
-        if (socket) socket.on('typing', callback);
+        if (socket) socket.on('userTyping', callback);
     },
 
     // Friend events
@@ -82,7 +88,7 @@ export const socketService = {
 
     // Emitters
     emitTyping: (recipientId, isTyping) => {
-        if (socket) socket.emit('typing', { recipientId, isTyping });
+        if (socket) socket.emit('userTyping', { recipientId, isTyping });
     },
 
     emitMessage: (message) => {
@@ -107,4 +113,4 @@ export const socketService = {
     emitNotificationRead: (notificationId) => {
         if (socket) socket.emit('notificationRead', { notificationId });
     }
-}; 
+};
