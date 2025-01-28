@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { messageService } from '../services/messageService';
 import { socketService } from '../services/socketService';
-import { BsArrowRight, BsArrowDown, BsPencil, BsImage, BsPaperclip } from "react-icons/bs";
+import { BsArrowRight, BsArrowDown, BsPencil, BsImage, BsPaperclip, BsTrash } from "react-icons/bs";
 import { notificationUtils } from '../utils/notificationUtils';
 
 const ChatBoard = ({ selectedFriend, onClose }) => {
@@ -96,7 +96,7 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                 } catch (error) {
                     console.error('Error polling messages:', error);
                 }
-            }, 50000);
+            }, 10000);
         };
 
         // if (selectedFriend) {
@@ -136,6 +136,15 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
     const handleEditMessage = (message) => {
         setEditingMessage(message);
         setNewMessage(message.content);
+    };
+
+    const handleDeleteMessage = async (messageId) => {
+        try {
+            await messageService.deleteMessage(messageId);
+            setMessages(prev => prev.filter(msg => msg._id !== messageId));
+        } catch (error) {
+            console.error('Error deleting message:', error);
+        }
     };
 
     const handleSendMessage = async (e) => {
@@ -278,13 +287,22 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                                         } text-left relative group`}
                                 >
                                     {message.sender._id !== selectedFriend._id && message.type === 'text' && (
-                                        <button
-                                            onClick={() => handleEditMessage(message)}
-                                            className="absolute -left-8 top-2 opacity-0 group-hover:opacity-100 
-                                                text-gray-500 hover:text-[#008D9C] transition-opacity"
-                                        >
-                                            <BsPencil className="h-4 w-4" />
-                                        </button>
+                                        <>
+                                            <button
+                                                onClick={() => handleEditMessage(message)}
+                                                className="absolute -left-8 top-2 opacity-0 group-hover:opacity-100 
+                                                    text-gray-500 hover:text-[#008D9C] transition-opacity"
+                                            >
+                                                <BsPencil className="h-4 w-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteMessage(message._id)}
+                                                className="absolute -left-16 top-2 opacity-0 group-hover:opacity-100 
+                                                    text-gray-500 hover:text-red-500 transition-opacity"
+                                            >
+                                                <BsTrash className="h-4 w-4" />
+                                            </button>
+                                        </>
                                     )}
                                     {message.type === 'image' ? (
                                         <img

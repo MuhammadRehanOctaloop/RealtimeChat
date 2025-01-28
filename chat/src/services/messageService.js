@@ -36,7 +36,13 @@ export const messageService = {
     },
 
     deleteMessage: async (messageId) => {
-        await api.delete(`/api/v1/messages/${messageId}`);
+        try {
+            const response = await api.delete(`/api/v1/messages/${messageId}`);
+            return response.data;
+        } catch (error) {
+            console.error('Error deleting message:', error);
+            throw error;
+        }
     },
 
     sendFileMessage: async (recipientId, file) => {
@@ -80,4 +86,4 @@ export const messageService = {
             throw error;
         }
     }
-}; 
+};
