@@ -72,44 +72,44 @@ const Notifications = ({
           </div>
           {friendRequests.map((request) => (
             <div
-              key={request._id}
-              className="p-3 border-b hover:bg-gray-50"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 overflow-hidden">
-                  <div className="w-8 h-8 bg-[#008D9C] rounded-full flex items-center justify-center">
-                    <BiUser className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="overflow-hidden">
-                    <div className="font-medium truncate">
-                      {request.sender?.username}
-                    </div>
-                    <div className="text-sm text-gray-500 truncate">
-                      Sent you a friend request
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      {formatDistanceToNow(new Date(request.createdAt), {
-                        addSuffix: true,
-                      })}
-                    </div>
-                  </div>
+            key={request._id}
+            className="p-3 border-b hover:bg-gray-50"
+          >
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+              <div className="flex items-center gap-2 overflow-hidden w-full">
+                <div className="w-8 h-8 bg-[#008D9C] rounded-full flex items-center justify-center flex-shrink-0">
+                  <BiUser className="h-5 w-5 text-white" />
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => onAcceptRequest(request._id)}
-                    className="px-2 py-1 bg-[#008D9C] text-white text-sm rounded hover:bg-[#007483]"
-                  >
-                    Accept
-                  </button>
-                  <button
-                    onClick={() => onDeclineRequest(request._id)}
-                    className="px-2 py-1 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300"
-                  >
-                    Decline
-                  </button>
+                <div className="overflow-hidden min-w-0 flex-1">
+                  <div className="font-medium truncate">
+                    {request.sender?.username}
+                  </div>
+                  <div className="text-sm text-gray-500 truncate">
+                    Sent you a friend request
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    {formatDistanceToNow(new Date(request.createdAt), {
+                      addSuffix: true,
+                    })}
+                  </div>
                 </div>
               </div>
+              <div className="flex gap-2 flex-shrink-0">
+                <button
+                  onClick={() => onAcceptRequest(request._id)}
+                  className="px-2 py-1 bg-[#008D9C] text-white text-sm rounded hover:bg-[#007483] w-auto"
+                >
+                  Accept
+                </button>
+                <button
+                  onClick={() => onDeclineRequest(request._id)}
+                  className="px-2 py-1 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300 w-auto"
+                >
+                  Decline
+                </button>
+              </div>
             </div>
+          </div>          
           ))}
           {notifications.map((notification) => (
             <div
