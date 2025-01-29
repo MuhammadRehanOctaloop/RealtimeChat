@@ -43,13 +43,8 @@ const Dashboard = () => {
     setUnreadCount(prev => prev + 1);
   };
 
-
-
   // Initialize WebSocket connection
   useEffect(() => {
-
-
-
     const URL = 'http://localhost:3001';
 
     const socket = io(URL, {
@@ -415,7 +410,7 @@ const Dashboard = () => {
   }, []);
 
   const startFriendsPolling = () => {
-    // Poll friends list every 2 seconds
+    // Poll friends list every 50 seconds
     friendsPollingInterval.current = setInterval(async () => {
       try {
         const friendsData = await friendService.getFriends();
@@ -431,8 +426,6 @@ const Dashboard = () => {
       }
     }, 50000);
   };
-
-
 
   return (
     <div className="flex h-screen bg-white relative">
