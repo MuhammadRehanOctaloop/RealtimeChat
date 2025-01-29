@@ -147,29 +147,10 @@ const Dashboard = () => {
       setFriendRequests(prev => prev.filter(req => req._id !== requestId));
     });
 
-    // Listen for new notifications
     socketService.onNotification((notification) => {
-      // Add new notification to the list
-      setNotifications(prev => [notification, ...prev]);
-
-      // Only increment if notification is not already read
-      if (!notification.read) {
-        setUnreadCount(prev => prev + 1);
-      }
-
-      // Show browser notification if it's a message
-      if (notification.type === 'message') {
-        notificationUtils.showNotification(
-          `New message from ${notification.sender.username}`,
-          {
-            body: notification.messageId.content,
-            tag: 'message-notification',
-            data: {
-              notificationId: notification._id,
-              senderId: notification.sender._id
-            }
-          }
-        );
+      console.log('Received notification:', notification);
+      if (notification && notification.title && notification.options) {
+        notificationUtils.showNotification(notification.title, notification.options);
       }
     });
 
