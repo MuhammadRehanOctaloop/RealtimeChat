@@ -1,6 +1,7 @@
 const NOTIFICATION_SOUND = new Audio('/notification.mp3'); // Add a notification sound file to public folder
 
 export const notificationUtils = {
+    
     requestPermission: async () => {
         if (!("Notification" in window)) {
             console.log("This browser does not support notifications");
@@ -29,4 +30,4 @@ export const notificationUtils = {
             }
         }
     }
-}; 
+};

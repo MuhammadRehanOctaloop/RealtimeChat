@@ -14,6 +14,7 @@ import ChatBoard from './ChatBoard';
 import { notificationUtils } from '../utils/notificationUtils';
 
 const Dashboard = () => {
+  // State management
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [friends, setFriends] = useState([]);
@@ -24,29 +25,31 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
-  const { user } = useAuth();
-  const { logout } = useAuth();
-  const navigate = useNavigate();
   const [error, setError] = useState(null);
   const [friendRequests, setFriendRequests] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const notificationsRef = useRef(null);
-  const notificationButtonRef = useRef(null);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [notificationsError, setNotificationsError] = useState(null);
+
+  // Refs for DOM elements
+  const notificationsRef = useRef(null);
+  const notificationButtonRef = useRef(null);
   const friendsPollingInterval = useRef(null);
   const notificationsPollingInterval = useRef(null);
 
-  // Add notification handler
+  // Hooks
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  // Notification handler
   const handleNotification = (notification) => {
     setNotifications(prev => [notification, ...prev]);
     setUnreadCount(prev => prev + 1);
   };
 
-  // Initialize WebSocket connection
+  // WebSocket and data fetching
   useEffect(() => {
     const URL = 'http://localhost:3001';
-
     const socket = io(URL, {
       "force new connection": true,
       "reconnectionAttempts": "infinity",
@@ -59,22 +62,20 @@ const Dashboard = () => {
     socket.on('connect', () => {
       socket.on('myevent', (data) => {
         console.log('Received message from server:', data);
-      })
-    })
+      });
+    });
 
     socketService.connect();
     setTimeout(() => {
       socketService.emitMessage('Hello from the client!');
     }, 5000);
+
     const fetchNotifications = async () => {
       try {
         setNotificationsLoading(true);
         setNotificationsError(null);
-
         const messageNotifications = await notificationService.getMessageNotifications();
-
         setNotifications(messageNotifications);
-        // Calculate unread count from notifications
         const unreadCount = messageNotifications.filter(notif => !notif.read).length;
         setUnreadCount(unreadCount);
       } catch (error) {
@@ -85,20 +86,17 @@ const Dashboard = () => {
         setNotificationsLoading(false);
       }
     };
+
     const startNotificationsPolling = () => {
       notificationsPollingInterval.current = setInterval(async () => {
         try {
           const messageNotifications = await notificationService.getMessageNotifications();
-
           setNotifications(prev => {
-            // Only update if there are changes
             if (JSON.stringify(prev) !== JSON.stringify(messageNotifications)) {
               return messageNotifications;
             }
             return prev;
           }, 5000);
-
-          // Update unread count based on unread notifications
           const newUnreadCount = messageNotifications.filter(notif => !notif.read).length;
           if (newUnreadCount !== unreadCount) {
             setUnreadCount(newUnreadCount);
@@ -108,6 +106,7 @@ const Dashboard = () => {
         }
       }, 50000);
     };
+
     fetchNotifications();
     startNotificationsPolling();
 
@@ -117,7 +116,6 @@ const Dashboard = () => {
       ));
     });
 
-    // Listen for friend requests
     socketService.onFriendRequest((data) => {
       console.log('Received friend request via socket:', data);
       setFriendRequests(prev => {
@@ -131,7 +129,6 @@ const Dashboard = () => {
         return prev;
       });
 
-      // Add notification for friend request
       handleNotification({
         type: 'friend_request',
         sender: data.sender,
@@ -142,50 +139,25 @@ const Dashboard = () => {
       });
     });
 
-    // Listen for friend request accepted
     socketService.onFriendRequestAccepted((data) => {
       setFriends(prev => [...prev, data.user]);
-      // You can add a notification here
     });
 
-    // Listen for friend request declined
     socketService.onFriendRequestDeclined((requestId) => {
       setFriendRequests(prev => prev.filter(req => req._id !== requestId));
     });
 
-    // Listen for new notifications
     socketService.onNotification((notification) => {
-      // Add new notification to the list
-      setNotifications(prev => [notification, ...prev]);
-
-      // Only increment if notification is not already read
-      if (!notification.read) {
-        setUnreadCount(prev => prev + 1);
-      }
-
-      // Show browser notification if it's a message
-      if (notification.type === 'message') {
-        notificationUtils.showNotification(
-          `New message from ${notification.sender.username}`,
-          {
-            body: notification.messageId.content,
-            tag: 'message-notification',
-            data: {
-              notificationId: notification._id,
-              senderId: notification.sender._id
-            }
-          }
-        );
+      console.log('Received notification:', notification);
+      if (notification && notification.title && notification.options) {
+        notificationUtils.showNotification(notification.title, notification.options);
       }
     });
 
-    // Listen for notification updates
     socketService.onNotificationUpdated(({ notificationId, read }) => {
       setNotifications(prev =>
         prev.map(notif =>
-          notif._id === notificationId
-            ? { ...notif, read }
-            : notif
+          notif._id === notificationId ? { ...notif, read } : notif
         )
       );
 
@@ -230,7 +202,6 @@ const Dashboard = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
-  // Add search users function
   const handleSearch = async (value) => {
     setSearchQuery(value);
     if (value.length < 2) {
@@ -241,7 +212,6 @@ const Dashboard = () => {
     try {
       setSearchLoading(true);
       const results = await friendService.searchUsers(value);
-      // Filter out current user and existing friends
       const filteredResults = results.filter(
         searchUser => searchUser._id !== user?._id &&
           !friends.some(friend => friend._id === searchUser._id)
@@ -255,23 +225,19 @@ const Dashboard = () => {
     }
   };
 
-  // Handle send friend request
   const handleSendFriendRequest = async (userId) => {
     try {
       setSearchLoading(true);
       const result = await friendService.sendFriendRequest(userId);
 
       if (!result.success) {
-        // If it's a duplicate request, just close the dropdown
         if (result.error === 'Friend request already sent') {
           return result;
         }
-        // For other errors, show them to the user
         console.error('Error:', result.error);
         return result;
       }
 
-      // Remove user from search results
       setSearchResults(prev => prev.filter(user => user._id !== userId));
       return result;
     } catch (error) {
@@ -285,13 +251,10 @@ const Dashboard = () => {
     }
   };
 
-  // Handle accept friend request
   const handleAcceptFriendRequest = async (requestId) => {
     try {
       await friendService.acceptFriendRequest(requestId);
-      // Remove the request from the list
       setFriendRequests(prev => prev.filter(req => req._id !== requestId));
-      // Refresh friends list
       const updatedFriends = await friendService.getFriends();
       setFriends(updatedFriends);
     } catch (error) {
@@ -299,7 +262,6 @@ const Dashboard = () => {
     }
   };
 
-  // Handle decline friend request
   const handleDeclineFriendRequest = async (requestId) => {
     try {
       await friendService.declineFriendRequest(requestId);
@@ -309,7 +271,6 @@ const Dashboard = () => {
     }
   };
 
-  // Add useEffect to fetch friend requests
   useEffect(() => {
     const fetchFriendRequests = async () => {
       try {
@@ -325,13 +286,11 @@ const Dashboard = () => {
     };
 
     fetchFriendRequests();
-    // Check for new requests every 30 seconds
     const interval = setInterval(fetchFriendRequests, 50000);
 
     return () => clearInterval(interval);
   }, []);
 
-  // Handle marking notifications as read
   const handleMarkAsRead = async (notificationId) => {
     try {
       await notificationService.markAsRead(notificationId);
@@ -347,7 +306,6 @@ const Dashboard = () => {
     }
   };
 
-  // Add function to mark all as read
   const handleMarkAllAsRead = async () => {
     try {
       await notificationService.markAllAsRead();
@@ -359,7 +317,6 @@ const Dashboard = () => {
     }
   };
 
-  // Add click outside handler for notifications
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (showNotifications &&
@@ -379,7 +336,6 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    // Request notification permission when dashboard mounts
     notificationUtils.requestPermission();
 
     const loadInitialData = async () => {
@@ -402,7 +358,6 @@ const Dashboard = () => {
     startFriendsPolling();
 
     return () => {
-      // Cleanup polling interval on unmount
       if (friendsPollingInterval.current) {
         clearInterval(friendsPollingInterval.current);
       }
@@ -410,12 +365,10 @@ const Dashboard = () => {
   }, []);
 
   const startFriendsPolling = () => {
-    // Poll friends list every 50 seconds
     friendsPollingInterval.current = setInterval(async () => {
       try {
         const friendsData = await friendService.getFriends();
         setFriends(prev => {
-          // Only update if there are changes
           if (JSON.stringify(prev) !== JSON.stringify(friendsData)) {
             return friendsData;
           }
@@ -454,7 +407,6 @@ const Dashboard = () => {
         </button>
 
         <div className="p-4 flex-1 overflow-y-auto">
-
           <h1 className="text-xl text-center font-bold text-[#008D9C] mb-4 mt-4">CHATTING</h1>
 
           <div className="flex justify-center ml-2 mr-2 relative">

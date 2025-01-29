@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { messageService } from '../services/messageService';
 import { socketService } from '../services/socketService';
-import { BsArrowRight, BsArrowDown, BsPencil, BsImage, BsPaperclip, BsTrash } from "react-icons/bs";
+import { BsArrowRight, BsArrowDown, BsPencil, BsImage, BsPaperclip, BsTrash, BsCheckAll } from "react-icons/bs";
 import { notificationUtils } from '../utils/notificationUtils';
 
 const ChatBoard = ({ selectedFriend, onClose }) => {
@@ -39,11 +39,35 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
         }
     };
 
+    const handleMarkAsRead = async (messageId) => {
+        try {
+            await messageService.markAsRead(messageId);
+            setMessages(prev =>
+                prev.map(msg =>
+                    msg._id === messageId ? { ...msg, read: true } : msg
+                )
+            );
+        } catch (error) {
+            console.error('Error marking message as read:', error);
+        }
+    };
+
+    const handleMarkAsUnread = async (messageId) => {
+        try {
+            await messageService.markAsUnread(messageId);
+            setMessages(prev =>
+                prev.map(msg =>
+                    msg._id === messageId ? { ...msg, read: false } : msg
+                )
+            );
+        } catch (error) {
+            console.error('Error marking message as unread:', error);
+        }
+    };
+
     useEffect(() => {
-        
         socketService.connect();
-    
-        
+
         const loadMessages = async () => {
             try {
                 setLoading(true);
@@ -59,7 +83,6 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
         };
 
         const setupSocketListeners = () => {
-
             socketService.onMessage((message) => {
                 if (message.sender._id === selectedFriend._id ||
                     message.recipient._id === selectedFriend._id) {
@@ -77,6 +100,7 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                             }
                         );
                     }
+                    handleMarkAsRead(message._id);
                 }
             });
             socketService.onTyping(({ isTyping: typing, senderId }) => {
@@ -99,11 +123,11 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
             }, 10000);
         };
 
-        // if (selectedFriend) {
+        if (selectedFriend) {
             loadMessages();
             setupSocketListeners();
             startMessagePolling();
-        // }
+        }
 
         return () => {
             socketService.disconnect();
@@ -132,6 +156,50 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
             }
         });
     }, [selectedFriend]);
+
+    useEffect(() => {
+        const markAllMessagesAsRead = async () => {
+            try {
+                const unreadMessages = messages.filter(msg => !msg.read && msg.sender._id === selectedFriend._id);
+                for (const message of unreadMessages) {
+                    await messageService.markAsRead(message._id);
+                }
+                setMessages(prev =>
+                    prev.map(msg =>
+                        msg.sender._id === selectedFriend._id ? { ...msg, read: true } : msg
+                    )
+                );
+            } catch (error) {
+                console.error('Error marking all messages as read:', error);
+            }
+        };
+
+        if (selectedFriend) {
+            markAllMessagesAsRead();
+        }
+    }, [selectedFriend]);
+
+    useEffect(() => {
+        const markAllMessagesAsRead = async () => {
+            try {
+                const unreadMessages = messages.filter(msg => !msg.read && msg.sender._id === selectedFriend._id);
+                for (const message of unreadMessages) {
+                    await messageService.markAsRead(message._id);
+                }
+                setMessages(prev =>
+                    prev.map(msg =>
+                        msg.sender._id === selectedFriend._id ? { ...msg, read: true } : msg
+                    )
+                );
+            } catch (error) {
+                console.error('Error marking all messages as read:', error);
+            }
+        };
+
+        if (selectedFriend) {
+            markAllMessagesAsRead();
+        }
+    }, [messages]);
 
     const handleEditMessage = (message) => {
         setEditingMessage(message);
@@ -282,8 +350,8 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                             >
                                 <div
                                     className={`max-w-[70%] rounded-lg p-3 ${message.sender._id === selectedFriend._id
-                                            ? 'bg-gray-100'
-                                            : 'bg-[#008D9C] text-white'
+                                            ? 'bg-[#E8E8E8]'
+                                            : 'bg-[#19A2B0] text-white'
                                         } text-left relative group`}
                                 >
                                     {message.sender._id !== selectedFriend._id && message.type === 'text' && (
@@ -337,6 +405,12 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                                             : 'justify-end'
                                         } text-xs opacity-70`}>
                                         {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                    <span className={`flex ${message.sender._id === selectedFriend._id
+                                            ? 'justify-start'
+                                            : 'justify-end'
+                                        } text-xs opacity-70`}>
+                                        <BsCheckAll className={`ml-2 ${message.read ? 'text-blue-800' : 'text-gray-500'}`} />
                                     </span>
                                 </div>
                             </div>
