@@ -51,7 +51,7 @@ const Notifications = ({
   };
 
   return (
-    <div className="w-80 bg-white rounded-lg shadow-lg border border-gray-200 max-h-96 overflow-y-auto overflow-x-hidden">
+    <div className="w-full sm:w-96 bg-white rounded-lg shadow-lg border border-gray-200 max-h-96 overflow-y-auto overflow-x-hidden">
       {loading ? (
         <div className="p-4 text-center text-gray-500">
           Loading notifications...
@@ -72,44 +72,44 @@ const Notifications = ({
           </div>
           {friendRequests.map((request) => (
             <div
-            key={request._id}
-            className="p-3 border-b hover:bg-gray-50"
-          >
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
-              <div className="flex items-center gap-2 overflow-hidden w-full">
-                <div className="w-8 h-8 bg-[#008D9C] rounded-full flex items-center justify-center flex-shrink-0">
-                  <BiUser className="h-5 w-5 text-white" />
+              key={request._id}
+              className="p-3 border-b hover:bg-gray-50"
+            >
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2 overflow-hidden w-full">
+                  <div className="w-8 h-8 bg-[#008D9C] rounded-full flex items-center justify-center flex-shrink-0">
+                    <BiUser className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="overflow-hidden min-w-0 flex-1">
+                    <div className="font-medium truncate">
+                      {request.sender?.username}
+                    </div>
+                    <div className="text-sm text-gray-500 truncate">
+                      Sent you a friend request
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {formatDistanceToNow(new Date(request.createdAt), {
+                        addSuffix: true,
+                      })}
+                    </div>
+                  </div>
                 </div>
-                <div className="overflow-hidden min-w-0 flex-1">
-                  <div className="font-medium truncate">
-                    {request.sender?.username}
-                  </div>
-                  <div className="text-sm text-gray-500 truncate">
-                    Sent you a friend request
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    {formatDistanceToNow(new Date(request.createdAt), {
-                      addSuffix: true,
-                    })}
-                  </div>
+                <div className="flex gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => onAcceptRequest(request._id)}
+                    className="px-2 py-1 bg-[#008D9C] text-white text-sm rounded hover:bg-[#007483] w-auto"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => onDeclineRequest(request._id)}
+                    className="px-2 py-1 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300 w-auto"
+                  >
+                    Decline
+                  </button>
                 </div>
-              </div>
-              <div className="flex gap-2 flex-shrink-0">
-                <button
-                  onClick={() => onAcceptRequest(request._id)}
-                  className="px-2 py-1 bg-[#008D9C] text-white text-sm rounded hover:bg-[#007483] w-auto"
-                >
-                  Accept
-                </button>
-                <button
-                  onClick={() => onDeclineRequest(request._id)}
-                  className="px-2 py-1 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300 w-auto"
-                >
-                  Decline
-                </button>
               </div>
             </div>
-          </div>          
           ))}
           {notifications.map((notification) => (
             <div

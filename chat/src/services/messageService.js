@@ -85,5 +85,25 @@ export const messageService = {
             console.error('Error sending image:', error);
             throw error;
         }
+    },
+
+    markAsRead: async (messageId) => {
+        try {
+            const response = await api.patch(`/api/v1/messages/${messageId}/read`);
+            return response.data.data.message;
+        } catch (error) {
+            console.error('Error marking message as read:', error);
+            throw error;
+        }
+    },
+
+    markAsUnread: async (messageId) => {
+        try {
+            const response = await api.patch(`/api/v1/messages/${messageId}/unread`);
+            return response.data.data.message;
+        } catch (error) {
+            console.error('Error marking message as unread:', error);
+            throw error;
+        }
     }
 };
