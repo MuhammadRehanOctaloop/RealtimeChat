@@ -53,11 +53,11 @@ const Dashboard = () => {
     const socket = io(URL, {
       "force new connection": true,
       "reconnectionAttempts": "infinity",
-      "timeout": 10000,
+      "timeout": 100000,
       "transports": ["websocket"]
     });
 
-    socket.timeout(5000).emit('myevent', 'Hello from the client!');
+    socket.timeout(500000).emit('myevent', 'Hello from the client!');
 
     socket.on('connect', () => {
       socket.on('myevent', (data) => {
@@ -68,7 +68,7 @@ const Dashboard = () => {
     socketService.connect();
     setTimeout(() => {
       socketService.emitMessage('Hello from the client!');
-    }, 5000);
+    }, 5000000);
 
     const fetchNotifications = async () => {
       try {
@@ -96,7 +96,7 @@ const Dashboard = () => {
               return messageNotifications;
             }
             return prev;
-          }, 5000);
+          }, 5000000);
           const newUnreadCount = messageNotifications.filter(notif => !notif.read).length;
           if (newUnreadCount !== unreadCount) {
             setUnreadCount(newUnreadCount);
@@ -104,7 +104,7 @@ const Dashboard = () => {
         } catch (error) {
           console.error('Error polling notifications:', error);
         }
-      }, 50000);
+      }, 500000000);
     };
 
     fetchNotifications();
@@ -305,7 +305,7 @@ const Dashboard = () => {
     };
 
     fetchFriendRequests();
-    const interval = setInterval(fetchFriendRequests, 50000);
+    const interval = setInterval(fetchFriendRequests, 5000000000);
 
     return () => clearInterval(interval);
   }, []);
@@ -396,7 +396,7 @@ const Dashboard = () => {
       } catch (error) {
         console.error('Error polling friends:', error);
       }
-    }, 50000);
+    }, 500000000);
   };
 
   return (

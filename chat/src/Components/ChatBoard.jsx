@@ -33,9 +33,14 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
     const handleScroll = () => {
         if (messageContainerRef.current) {
             const { scrollTop, scrollHeight, clientHeight } = messageContainerRef.current;
-            const bottom = scrollHeight - scrollTop - clientHeight < 100;
+            const bottom = scrollHeight - scrollTop === clientHeight;
             setIsNearBottom(bottom);
-            if (bottom) setHasNewMessages(false);
+            if (bottom){ 
+                setHasNewMessages(false);
+            }
+            else{
+                setHasNewMessages(true)
+            }
         }
     };
 
@@ -49,19 +54,6 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
             );
         } catch (error) {
             console.error('Error marking message as read:', error);
-        }
-    };
-
-    const handleMarkAsUnread = async (messageId) => {
-        try {
-            await messageService.markAsUnread(messageId);
-            setMessages(prev =>
-                prev.map(msg =>
-                    msg._id === messageId ? { ...msg, read: false } : msg
-                )
-            );
-        } catch (error) {
-            console.error('Error marking message as unread:', error);
         }
     };
 
@@ -120,7 +112,7 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                 } catch (error) {
                     console.error('Error polling messages:', error);
                 }
-            }, 10000);
+            }, 1000000);
         };
 
         if (selectedFriend) {
@@ -156,50 +148,6 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
             }
         });
     }, [selectedFriend]);
-
-    useEffect(() => {
-        const markAllMessagesAsRead = async () => {
-            try {
-                const unreadMessages = messages.filter(msg => !msg.read && msg.sender._id === selectedFriend._id);
-                for (const message of unreadMessages) {
-                    await messageService.markAsRead(message._id);
-                }
-                setMessages(prev =>
-                    prev.map(msg =>
-                        msg.sender._id === selectedFriend._id ? { ...msg, read: true } : msg
-                    )
-                );
-            } catch (error) {
-                console.error('Error marking all messages as read:', error);
-            }
-        };
-
-        if (selectedFriend) {
-            markAllMessagesAsRead();
-        }
-    }, [selectedFriend]);
-
-    useEffect(() => {
-        const markAllMessagesAsRead = async () => {
-            try {
-                const unreadMessages = messages.filter(msg => !msg.read && msg.sender._id === selectedFriend._id);
-                for (const message of unreadMessages) {
-                    await messageService.markAsRead(message._id);
-                }
-                setMessages(prev =>
-                    prev.map(msg =>
-                        msg.sender._id === selectedFriend._id ? { ...msg, read: true } : msg
-                    )
-                );
-            } catch (error) {
-                console.error('Error marking all messages as read:', error);
-            }
-        };
-
-        if (selectedFriend) {
-            markAllMessagesAsRead();
-        }
-    }, [messages]);
 
     const handleEditMessage = (message) => {
         setEditingMessage(message);
@@ -258,7 +206,7 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
         clearTimeout(typingTimeout.current);
         typingTimeout.current = setTimeout(() => {
         socketService.emitStopTyping({ senderId, receiverId: selectedFriend._id });
-        }, 3000);
+        }, 2000);
     };
 
     const handleFileSelect = async (event) => {
