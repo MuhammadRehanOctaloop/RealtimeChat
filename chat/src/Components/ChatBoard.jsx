@@ -395,7 +395,7 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                                             </div>
                                         </div>
                                     ) : (
-                                        <p className="break-words">{message.content}</p>
+                                        <p className="break-all">{message.content}</p>
                                     )}
                                     {message.edited && message.type === 'text' && (
                                         <span className="text-xs opacity-50 italic block">(edited)</span>
