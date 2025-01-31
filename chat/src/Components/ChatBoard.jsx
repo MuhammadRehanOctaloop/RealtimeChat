@@ -11,7 +11,6 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
     const [loading, setLoading] = useState(false);
     const [hasNewMessages, setHasNewMessages] = useState(false);
     const [isNearBottom, setIsNearBottom] = useState(true);
-    const pollingInterval = useRef(null);
     const messagesEndRef = useRef(null);
     const messageContainerRef = useRef(null);
     const [editingMessage, setEditingMessage] = useState(null);
@@ -21,7 +20,6 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
     const [errorMessage, setErrorMessage] = useState('');
     const CHARACTER_LIMIT = 10000;
     const [isButtonDisabled, setIsButtonDisabled] = useState(false);
-
 
     const scrollToBottom = () => {
         if (messageContainerRef.current) {
@@ -35,11 +33,10 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
             const { scrollTop, scrollHeight, clientHeight } = messageContainerRef.current;
             const bottom = scrollHeight - scrollTop === clientHeight;
             setIsNearBottom(bottom);
-            if (bottom){ 
+            if (bottom) {
                 setHasNewMessages(false);
-            }
-            else{
-                setHasNewMessages(true)
+            } else {
+                setHasNewMessages(true);
             }
         }
     };
@@ -59,91 +56,69 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
     };
 
     useEffect(() => {
-        socketService.connect();
+        if (selectedFriend) {
+            const loadMessages = async () => {
+                try {
+                    const conversation = await messageService.getConversation(selectedFriend._id);
+                    setMessages(Array.isArray(conversation) ? conversation : []);
+                    setTimeout(scrollToBottom, 100);
 
-        const loadMessages = async () => {
-            try {
-                setLoading(true);
-                const conversation = await messageService.getConversation(selectedFriend._id);
-                setMessages(Array.isArray(conversation) ? conversation : []);
-                setTimeout(scrollToBottom, 100);
-
-                // Mark all received messages as read
-                const unreadMessages = conversation.filter(msg => !msg.read && msg.sender._id === selectedFriend._id);
-                for (const message of unreadMessages) {
-                    handleMarkAsRead(message._id);
-                }
-            } catch (error) {
-                console.error('Error loading messages:', error);
-                setMessages([]);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        const setupSocketListeners = () => {
-            socketService.onMessage((message) => {
-                if (message.sender._id === selectedFriend._id ||
-                    message.recipient._id === selectedFriend._id) {
-                    setMessages(prev => Array.isArray(prev) ? [...prev, message] : [message]);
-                    if (!isNearBottom) {
-                        setHasNewMessages(true);
+                    // Mark all received messages as read
+                    const unreadMessages = conversation.filter(msg => !msg.read && msg.sender._id === selectedFriend._id);
+                    for (const message of unreadMessages) {
+                        handleMarkAsRead(message._id);
                     }
-                    if (message.sender._id === selectedFriend._id) {
-                        notificationUtils.showNotification(
-                            `New message from ${selectedFriend.username}`,
-                            {
-                                body: message.content,
-                                tag: 'chat-message',
-                                renotify: true
-                            }
-                        );
+                } catch (error) {
+                    console.error('Error loading messages:', error);
+                    setMessages([]);
+                }
+            };
+
+            const setupSocketListeners = () => {
+                socketService.onMessage((message) => {
+                    if (message.sender._id === selectedFriend._id ||
+                        message.recipient._id === selectedFriend._id) {
+                        setMessages(prev => Array.isArray(prev) ? [...prev, message] : [message]);
+                        if (!isNearBottom) {
+                            setHasNewMessages(true);
+                        }
+                        if (message.sender._id === selectedFriend._id) {
+                            notificationUtils.showNotification(
+                                `New message from ${selectedFriend.username}`,
+                                {
+                                    body: message.content,
+                                    tag: 'chat-message',
+                                    renotify: true
+                                }
+                            );
+                        }
+                        handleMarkAsRead(message._id);
                     }
-                    handleMarkAsRead(message._id);
-                }
-            });
-            socketService.onTyping(({ isTyping: typing, senderId }) => {
-                if (senderId === selectedFriend._id) {
-                    setIsTyping(typing);
-                }
-            });
-            socketService.onMessageRead(({ messageId, userId }) => {
-                if (userId === selectedFriend._id) {
+                });
+                socketService.onMessageRead(({ messageId, userId }) => {
                     setMessages(prev =>
                         prev.map(msg =>
                             msg._id === messageId ? { ...msg, read: true } : msg
                         )
                     );
-                }
-            });
-        };
-
-        const startMessagePolling = () => {
-            pollingInterval.current = setInterval(async () => {
-                try {
-                    const conversation = await messageService.getConversation(selectedFriend._id);
-                    if (conversation.length > messages.length) {
-                        setMessages(conversation);
+                });
+                socketService.onTyping(({ typing, senderId }) => {
+                    if (senderId === selectedFriend._id) {
+                        setIsTyping(typing);
                     }
-                } catch (error) {
-                    console.error('Error polling messages:', error);
-                }
-            }, 1000000);
-        };
+                });
+            };
 
-        if (selectedFriend) {
+            
+            socketService.connect();
             loadMessages();
             setupSocketListeners();
-            startMessagePolling();
+            
+            return () => {
+                socketService.disconnect();
+            };
         }
-
-        return () => {
-            socketService.disconnect();
-            if (pollingInterval.current) {
-                clearInterval(pollingInterval.current);
-            }
-        };
-    }, [selectedFriend]);
+    }, [selectedFriend, isNearBottom, messages.length]);
 
     useEffect(() => {
         if (isNearBottom) {
@@ -156,23 +131,6 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
     useEffect(() => {
         notificationUtils.requestPermission();
     }, []);
-
-    useEffect(() => {
-        socketService.onTyping(({ typing, senderId }) => {
-            if (senderId === selectedFriend._id) {
-                setIsTyping(typing);
-            }
-        });
-        socketService.onMessageRead(({ messageId, userId }) => {
-            if (userId === selectedFriend._id) {
-                setMessages(prev =>
-                    prev.map(msg =>
-                        msg._id === messageId ? { ...msg, read: true } : msg
-                    )
-                );
-            }
-        });
-    }, [selectedFriend]);
 
     const handleEditMessage = (message) => {
         setEditingMessage(message);

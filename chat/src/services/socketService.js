@@ -23,6 +23,13 @@ export const socketService = {
             console.error('Connection error:', err.message);
         });
 
+        socket.on('messageRead', (data) => {
+            console.log('Message read:', data);
+            if (data.userId) {
+                socket.emit('messageRead', data);
+            }
+        });
+
         return socket;
     },
 
@@ -51,6 +58,10 @@ export const socketService = {
     onMessageRead: (callback) => {
         if (socket) {
             socket.on('messageRead', (data) => {
+                console.log('Message read:', data);
+                if (data.userId) {
+                    socket.emit('messageRead', data);
+                }
                 callback(data);
             });
         }
