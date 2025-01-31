@@ -96,14 +96,4 @@ export const messageService = {
             throw error;
         }
     },
-
-    markAsUnread: async (messageId) => {
-        try {
-            const response = await api.patch(`/api/v1/messages/${messageId}/unread`);
-            return response.data.data.message;
-        } catch (error) {
-            console.error('Error marking message as unread:', error);
-            throw error;
-        }
-    }
 };

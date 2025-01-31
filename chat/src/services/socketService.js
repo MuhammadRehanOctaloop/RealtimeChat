@@ -48,6 +48,14 @@ export const socketService = {
         }
     },
 
+    onMessageRead: (callback) => {
+        if (socket) {
+            socket.on('messageRead', (data) => {
+                callback(data);
+            });
+        }
+    },
+
     // Friend events
     onFriendRequest: (callback) => {
         console.log('Setting up friend request listener');
@@ -115,5 +123,11 @@ export const socketService = {
 
     emitNotificationRead: (notificationId) => {
         if (socket) socket.emit('notificationRead', { notificationId });
+    },
+
+    emitMessageRead: ({ messageId, userId }) => {
+        if (socket) {
+            socket.emit('messageRead', { messageId, userId });
+        }
     }
 };

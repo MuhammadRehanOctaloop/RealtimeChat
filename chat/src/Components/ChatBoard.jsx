@@ -52,6 +52,7 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                     msg._id === messageId ? { ...msg, read: true } : msg
                 )
             );
+            socketService.emitMessageRead({ messageId, userId: selectedFriend._id });
         } catch (error) {
             console.error('Error marking message as read:', error);
         }
@@ -66,6 +67,12 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                 const conversation = await messageService.getConversation(selectedFriend._id);
                 setMessages(Array.isArray(conversation) ? conversation : []);
                 setTimeout(scrollToBottom, 100);
+
+                // Mark all received messages as read
+                const unreadMessages = conversation.filter(msg => !msg.read && msg.sender._id === selectedFriend._id);
+                for (const message of unreadMessages) {
+                    handleMarkAsRead(message._id);
+                }
             } catch (error) {
                 console.error('Error loading messages:', error);
                 setMessages([]);
@@ -98,6 +105,15 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
             socketService.onTyping(({ isTyping: typing, senderId }) => {
                 if (senderId === selectedFriend._id) {
                     setIsTyping(typing);
+                }
+            });
+            socketService.onMessageRead(({ messageId, userId }) => {
+                if (userId === selectedFriend._id) {
+                    setMessages(prev =>
+                        prev.map(msg =>
+                            msg._id === messageId ? { ...msg, read: true } : msg
+                        )
+                    );
                 }
             });
         };
@@ -145,6 +161,15 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
         socketService.onTyping(({ typing, senderId }) => {
             if (senderId === selectedFriend._id) {
                 setIsTyping(typing);
+            }
+        });
+        socketService.onMessageRead(({ messageId, userId }) => {
+            if (userId === selectedFriend._id) {
+                setMessages(prev =>
+                    prev.map(msg =>
+                        msg._id === messageId ? { ...msg, read: true } : msg
+                    )
+                );
             }
         });
     }, [selectedFriend]);
