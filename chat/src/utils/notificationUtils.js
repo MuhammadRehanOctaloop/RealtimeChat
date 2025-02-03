@@ -1,5 +1,3 @@
-const NOTIFICATION_SOUND = new Audio('/notification.mp3'); // Add a notification sound file to public folder
-
 export const notificationUtils = {
     
     requestPermission: async () => {
@@ -19,7 +17,6 @@ export const notificationUtils = {
     showNotification: (title, options = {}) => {
         if (Notification.permission === "granted" && document.hidden) {
             try {
-                NOTIFICATION_SOUND.play();
                 new Notification(title, {
                     icon: '/logo192.png', // Add your app icon
                     badge: '/logo192.png',

@@ -132,6 +132,22 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
         notificationUtils.requestPermission();
     }, []);
 
+    
+    useEffect(() => {
+        socketService.onMessageRead(({ messageId, userId }) => {
+            setMessages(prev =>
+                prev.map(msg =>
+                    msg._id === messageId ? { ...msg, read: true } : msg
+                )
+            );
+        });
+        socketService.onTyping(({ typing, senderId }) => {
+            if (senderId === selectedFriend._id) {
+                setIsTyping(typing);
+            }
+        });    
+    }, [selectedFriend]);
+
     const handleEditMessage = (message) => {
         setEditingMessage(message);
         setNewMessage(message.content);
@@ -152,6 +168,7 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
 
         try {
             setIsButtonDisabled(true);
+            const user = JSON.parse(localStorage.getItem('user')); // Get user from localStorage
             if (editingMessage) {
                 await messageService.editMessage(editingMessage._id, newMessage);
                 setMessages(prev =>
@@ -168,6 +185,8 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                 socketService.emitMessage(sentMessage);
             }
             setNewMessage('');
+            setIsTyping(false); // Reset typing state
+            socketService.emitStopTyping({ senderId: user._id, receiverId: selectedFriend._id }); // Notify stop typing
             setTimeout(() => setIsButtonDisabled(false), 1000);
         } catch (error) {
             console.error('Error sending/editing message:', error);
@@ -188,7 +207,8 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
         socketService.emitTyping({ senderId, receiverId: selectedFriend._id, typing: message.length > 0 });
         clearTimeout(typingTimeout.current);
         typingTimeout.current = setTimeout(() => {
-        socketService.emitStopTyping({ senderId, receiverId: selectedFriend._id });
+            socketService.emitStopTyping({ senderId, receiverId: selectedFriend._id });
+            setIsTyping(false); // Reset typing state
         }, 2000);
     };
 

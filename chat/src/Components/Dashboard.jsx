@@ -70,46 +70,6 @@ const Dashboard = () => {
       socketService.emitMessage('Hello from the client!');
     }, 5000000);
 
-    const fetchNotifications = async () => {
-      try {
-        setNotificationsLoading(true);
-        setNotificationsError(null);
-        const messageNotifications = await notificationService.getMessageNotifications();
-        setNotifications(messageNotifications);
-        const unreadCount = messageNotifications.filter(notif => !notif.read).length;
-        setUnreadCount(unreadCount);
-      } catch (error) {
-        console.error('Error fetching notifications:', error);
-        setNotificationsError('Failed to load notifications');
-        setNotifications([]);
-      } finally {
-        setNotificationsLoading(false);
-      }
-    };
-
-    const startNotificationsPolling = () => {
-      notificationsPollingInterval.current = setInterval(async () => {
-        try {
-          const messageNotifications = await notificationService.getMessageNotifications();
-          setNotifications(prev => {
-            if (JSON.stringify(prev) !== JSON.stringify(messageNotifications)) {
-              return messageNotifications;
-            }
-            return prev;
-          }, 5000000);
-          const newUnreadCount = messageNotifications.filter(notif => !notif.read).length;
-          if (newUnreadCount !== unreadCount) {
-            setUnreadCount(newUnreadCount);
-          }
-        } catch (error) {
-          console.error('Error polling notifications:', error);
-        }
-      }, 500000000);
-    };
-
-    fetchNotifications();
-    startNotificationsPolling();
-
     socketService.onFriendStatusChange(({ userId, online }) => {
       setFriends(prev => prev.map(friend =>
         friend._id === userId ? { ...friend, online } : friend
@@ -185,32 +145,46 @@ const Dashboard = () => {
       }
     });
 
+    const fetchInitialData = async () => {
+      try {
+        setLoading(true);
+        setNotificationsLoading(true);
+        setError(null);
+        setNotificationsError(null);
+
+        const [friendsData, requestsData, notificationsData] = await Promise.all([
+          friendService.getFriends(),
+          friendService.getFriendRequests(),
+          notificationService.getMessageNotifications()
+        ]);
+
+        setFriends(Array.isArray(friendsData) ? friendsData : []);
+        setFriendRequests(Array.isArray(requestsData) ? requestsData : []);
+        setNotifications(Array.isArray(notificationsData) ? notificationsData : []);
+        const unreadCount = notificationsData.filter(notif => !notif.read).length;
+        setUnreadCount(unreadCount);
+      } catch (error) {
+        console.error('Error fetching initial data:', error);
+        setError('Failed to load data. Please try again later.');
+        setNotificationsError('Failed to load notifications');
+        setFriends([]);
+        setFriendRequests([]);
+        setNotifications([]);
+      } finally {
+        setLoading(false);
+        setNotificationsLoading(false);
+      }
+    };
+
+    fetchInitialData();
+
     return () => {
       socketService.disconnect();
       if (notificationsPollingInterval.current) {
         clearInterval(notificationsPollingInterval.current);
       }
     };
-  }, []);
-
-  useEffect(() => {
-    const fetchFriends = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const friendsData = await friendService.getFriends();
-        setFriends(Array.isArray(friendsData) ? friendsData : []);
-      } catch (error) {
-        console.error('Error fetching friends:', error);
-        setError('Failed to load friends. Please try again later.');
-        setFriends([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchFriends();
-  }, []);
+  }, []); // Add dependency array to prevent multiple API calls
 
   const handleLogout = () => {
     navigate('/');
@@ -290,26 +264,6 @@ const Dashboard = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchFriendRequests = async () => {
-      try {
-        const requests = await friendService.getFriendRequests();
-        if (Array.isArray(requests)) {
-          setFriendRequests(requests);
-        } else {
-          console.error('Invalid friend requests format:', requests);
-        }
-      } catch (error) {
-        console.error('Error fetching friend requests:', error);
-      }
-    };
-
-    fetchFriendRequests();
-    const interval = setInterval(fetchFriendRequests, 5000000000);
-
-    return () => clearInterval(interval);
-  }, []);
-
   const handleMarkAsRead = async (notificationId) => {
     try {
       await notificationService.markAsRead(notificationId);
@@ -348,7 +302,7 @@ const Dashboard = () => {
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showNotifications]);
+  }, []);
 
   const handleFriendClick = (friend) => {
     setSelectedFriend(friend);
@@ -356,48 +310,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     notificationUtils.requestPermission();
-
-    const loadInitialData = async () => {
-      try {
-        const [friendsData, requestsData, notificationsData] = await Promise.all([
-          friendService.getFriends(),
-          friendService.getFriendRequests(),
-          notificationService.getAllNotifications()
-        ]);
-
-        setFriends(friendsData);
-        setFriendRequests(requestsData);
-        setNotifications(notificationsData);
-      } catch (error) {
-        console.error('Error loading initial data:', error);
-      }
-    };
-
-    loadInitialData();
-    startFriendsPolling();
-
-    return () => {
-      if (friendsPollingInterval.current) {
-        clearInterval(friendsPollingInterval.current);
-      }
-    };
-  }, []);
-
-  const startFriendsPolling = () => {
-    friendsPollingInterval.current = setInterval(async () => {
-      try {
-        const friendsData = await friendService.getFriends();
-        setFriends(prev => {
-          if (JSON.stringify(prev) !== JSON.stringify(friendsData)) {
-            return friendsData;
-          }
-          return prev;
-        });
-      } catch (error) {
-        console.error('Error polling friends:', error);
-      }
-    }, 500000000);
-  };
+  }, []); // Add dependency array to prevent multiple API calls
 
   return (
     <div className="flex h-screen bg-white relative">

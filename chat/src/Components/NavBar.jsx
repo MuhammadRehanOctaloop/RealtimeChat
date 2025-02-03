@@ -42,7 +42,7 @@ const NavBar = ({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showNotifications]);
+  }, []);
 
   const handleAddFriend = async (userId) => {
     const result = await handleSendFriendRequest(userId);
@@ -189,4 +189,4 @@ const NavBar = ({
   );
 };
 
-export default NavBar; 
+export default NavBar;

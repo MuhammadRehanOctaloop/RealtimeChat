@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { BiUser, BiMessage, BiCheckCircle, BiInfoCircle } from "react-icons/bi";
 
@@ -12,7 +12,7 @@ const Notifications = ({
   loading,
   error,
 }) => {
-  const getNotificationIcon = (type) => {
+  const getNotificationIcon = useCallback((type) => {
     switch (type) {
       case "friend_request":
         return <BiUser className="h-5 w-5 text-white" />;
@@ -25,9 +25,9 @@ const Notifications = ({
       default:
         return <BiInfoCircle className="h-5 w-5 text-white" />;
     }
-  };
+  }, []);
 
-  const renderNotificationContent = (notification) => {
+  const renderNotificationContent = useCallback((notification) => {
     return (
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 bg-[#008D9C] rounded-full flex items-center justify-center">
@@ -48,7 +48,7 @@ const Notifications = ({
         </div>
       </div>
     );
-  };
+  }, [getNotificationIcon]);
 
   return (
     <div className="w-full sm:w-96 bg-white rounded-lg shadow-lg border border-gray-200 max-h-96 overflow-y-auto overflow-x-hidden">
