@@ -30,13 +30,12 @@ const Dashboard = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [notificationsError, setNotificationsError] = useState(null);
+  const [friendRequestCount, setFriendRequestCount] = useState(0);
 
   // Refs for DOM elements
   const notificationsRef = useRef(null);
   const notificationButtonRef = useRef(null);
-  const friendsPollingInterval = useRef(null);
-  const notificationsPollingInterval = useRef(null);
-
+  
   // Hooks
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -45,6 +44,9 @@ const Dashboard = () => {
   const handleNotification = (notification) => {
     setNotifications(prev => [notification, ...prev]);
     setUnreadCount(prev => prev + 1);
+    if (notification.type === 'friend_request') {
+      setFriendRequestCount(prev => prev + 1);
+    }
   };
 
   // WebSocket and data fetching
@@ -89,14 +91,15 @@ const Dashboard = () => {
         return prev;
       });
 
-      handleNotification({
-        type: 'friend_request',
-        sender: data.sender,
-        recipient: data.recipient,
-        createdAt: new Date(),
-        read: false,
-        _id: data._id
-      });
+      // Ensure this block is removed to avoid duplicate notifications
+      // handleNotification({
+      //   type: 'friend_request',
+      //   sender: data.sender,
+      //   recipient: data.recipient,
+      //   createdAt: new Date().toISOString(), // Ensure valid date format
+      //   read: false,
+      //   _id: data._id
+      // });
     });
 
     socketService.onFriendRequestAccepted((data) => {
@@ -180,9 +183,6 @@ const Dashboard = () => {
 
     return () => {
       socketService.disconnect();
-      if (notificationsPollingInterval.current) {
-        clearInterval(notificationsPollingInterval.current);
-      }
     };
   }, []); // Add dependency array to prevent multiple API calls
 
@@ -250,6 +250,7 @@ const Dashboard = () => {
       setFriendRequests(prev => prev.filter(req => req._id !== requestId));
       const updatedFriends = await friendService.getFriends();
       setFriends(updatedFriends);
+      setFriendRequestCount(prev => Math.max(0, prev - 1));
     } catch (error) {
       console.error('Error accepting friend request:', error);
     }
@@ -259,6 +260,7 @@ const Dashboard = () => {
     try {
       await friendService.declineFriendRequest(requestId);
       setFriendRequests(prev => prev.filter(req => req._id !== requestId));
+      setFriendRequestCount(prev => Math.max(0, prev - 1));
     } catch (error) {
       console.error('Error declining friend request:', error);
     }
@@ -429,6 +431,7 @@ const Dashboard = () => {
             onMarkAllNotificationsRead={handleMarkAllAsRead}
             toggleSidebar={toggleSidebar}
             isSidebarOpen={isSidebarOpen}
+            friendRequestCount={friendRequestCount}
           />
         )}
 

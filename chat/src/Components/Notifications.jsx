@@ -28,6 +28,10 @@ const Notifications = ({
   }, []);
 
   const renderNotificationContent = useCallback((notification) => {
+    const createdAt = new Date(notification.createdAt);
+    const isValidDate = !isNaN(createdAt);
+    const displayDate = isValidDate ? createdAt : new Date();
+
     return (
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 bg-[#008D9C] rounded-full flex items-center justify-center">
@@ -41,9 +45,7 @@ const Notifications = ({
             </div>
           )}
           <div className="text-xs text-gray-400">
-            {formatDistanceToNow(new Date(notification.createdAt), {
-              addSuffix: true,
-            })}
+            {formatDistanceToNow(displayDate, { addSuffix: true })}
           </div>
         </div>
       </div>
@@ -70,47 +72,51 @@ const Notifications = ({
               Mark all as read
             </button>
           </div>
-          {friendRequests.map((request) => (
-            <div
-              key={request._id}
-              className="p-3 border-b hover:bg-gray-50"
-            >
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                <div className="flex items-center gap-2 overflow-hidden w-full">
-                  <div className="w-8 h-8 bg-[#008D9C] rounded-full flex items-center justify-center flex-shrink-0">
-                    <BiUser className="h-5 w-5 text-white" />
+          {friendRequests.map((request) => {
+            const createdAt = new Date(request.createdAt);
+            const isValidDate = !isNaN(createdAt);
+            const displayDate = isValidDate ? createdAt : new Date();
+
+            return (
+              <div
+                key={request._id}
+                className="p-3 border-b hover:bg-gray-50"
+              >
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 overflow-hidden w-full">
+                    <div className="w-8 h-8 bg-[#008D9C] rounded-full flex items-center justify-center flex-shrink-0">
+                      <BiUser className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="overflow-hidden min-w-0 flex-1">
+                      <div className="font-medium truncate">
+                        {request.sender?.username}
+                      </div>
+                      <div className="text-sm text-gray-500 truncate">
+                        Sent you a friend request
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {formatDistanceToNow(displayDate, { addSuffix: true })}
+                      </div>
+                    </div>
                   </div>
-                  <div className="overflow-hidden min-w-0 flex-1">
-                    <div className="font-medium truncate">
-                      {request.sender?.username}
-                    </div>
-                    <div className="text-sm text-gray-500 truncate">
-                      Sent you a friend request
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      {formatDistanceToNow(new Date(request.createdAt), {
-                        addSuffix: true,
-                      })}
-                    </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => onAcceptRequest(request._id)}
+                      className="px-2 py-1 bg-[#008D9C] text-white text-sm rounded hover:bg-[#007483] w-auto"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      onClick={() => onDeclineRequest(request._id)}
+                      className="px-2 py-1 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300 w-auto"
+                    >
+                      Decline
+                    </button>
                   </div>
-                </div>
-                <div className="flex gap-2 flex-shrink-0">
-                  <button
-                    onClick={() => onAcceptRequest(request._id)}
-                    className="px-2 py-1 bg-[#008D9C] text-white text-sm rounded hover:bg-[#007483] w-auto"
-                  >
-                    Accept
-                  </button>
-                  <button
-                    onClick={() => onDeclineRequest(request._id)}
-                    className="px-2 py-1 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300 w-auto"
-                  >
-                    Decline
-                  </button>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {notifications.map((notification) => (
             <div
               key={notification._id}
