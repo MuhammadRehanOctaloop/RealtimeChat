@@ -357,12 +357,11 @@ const ChatBoard = ({ selectedFriend, onClose }) => {
                                         } text-xs opacity-70`}>
                                         {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </span>
-                                    <span className={`flex ${message.sender._id === selectedFriend._id
-                                            ? 'justify-start'
-                                            : 'justify-end'
-                                        } text-xs opacity-70`}>
-                                        <BsCheckAll className={`ml-2 ${message.read ? 'text-blue-800' : 'text-gray-500'}`} />
-                                    </span>
+                                    {message.sender._id !== selectedFriend._id && (
+                                        <span className={`flex justify-end text-xs opacity-70`}>
+                                            <BsCheckAll className={`ml-2 ${message.read ? 'text-blue-800' : 'text-gray-500'}`} />
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         ))}
