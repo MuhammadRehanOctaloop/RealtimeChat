@@ -79,7 +79,7 @@ const Notifications = ({
 
             return (
               <div
-                key={request._id}
+                key={request._id || request.requestId}
                 className="p-3 border-b hover:bg-gray-50"
               >
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
@@ -101,13 +101,13 @@ const Notifications = ({
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
                     <button
-                      onClick={() => onAcceptRequest(request._id)}
+                      onClick={() => onAcceptRequest(request._id || request.requestId)}
                       className="px-2 py-1 bg-[#008D9C] text-white text-sm rounded hover:bg-[#007483] w-auto"
                     >
                       Accept
                     </button>
                     <button
-                      onClick={() => onDeclineRequest(request._id)}
+                      onClick={() => onDeclineRequest(request._id || request.requestId)}
                       className="px-2 py-1 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300 w-auto"
                     >
                       Decline

@@ -79,7 +79,7 @@ export const friendService = {
     declineFriendRequest: async (requestId) => {
         try {
             const response = await api.post('/api/v1/friends/decline', { 
-                requestId: requestId 
+                requestId: requestId
             });
             return response.data;
         } catch (error) {

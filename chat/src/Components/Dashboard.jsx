@@ -82,9 +82,10 @@ const Dashboard = () => {
       console.log('Received friend request via socket:', data);
       setFriendRequests(prev => {
         const exists = prev.some(req =>
-          req._id === data._id ||
-          (req.sender._id === data.sender._id && req.recipient._id === data.recipient._id)
+          req._id === data.requestId ||
+          (req.sender._id === data.sender._id || req._id === data.requestId)
         );
+        console.log("request id is this ", data.requestId);
         if (!exists) {
           return [...prev, data];
         }
@@ -104,9 +105,12 @@ const Dashboard = () => {
 
     socketService.onFriendRequestAccepted((data) => {
       setFriends(prev => [...prev, data.user]);
+      console.log(data.user)
     });
 
     socketService.onFriendRequestDeclined((requestId) => {
+      console.log(requestId)
+      console.log("on fre=iend reqest decline ")
       setFriendRequests(prev => prev.filter(req => req._id !== requestId));
     });
 
@@ -246,8 +250,10 @@ const Dashboard = () => {
 
   const handleAcceptFriendRequest = async (requestId) => {
     try {
+      console.log("inside handle friend requesrt")
       await friendService.acceptFriendRequest(requestId);
       setFriendRequests(prev => prev.filter(req => req._id !== requestId));
+      setFriendRequests(prev => prev.filter(req => req.requestId !== requestId));
       const updatedFriends = await friendService.getFriends();
       setFriends(updatedFriends);
       setFriendRequestCount(prev => Math.max(0, prev - 1));
@@ -258,8 +264,11 @@ const Dashboard = () => {
 
   const handleDeclineFriendRequest = async (requestId) => {
     try {
+      console.log("inside handle decline request ")
       await friendService.declineFriendRequest(requestId);
       setFriendRequests(prev => prev.filter(req => req._id !== requestId));
+      setFriendRequests(prev => prev.filter(req => req.requestId !== requestId));
+      console.log("this is request id", requestId);
       setFriendRequestCount(prev => Math.max(0, prev - 1));
     } catch (error) {
       console.error('Error declining friend request:', error);

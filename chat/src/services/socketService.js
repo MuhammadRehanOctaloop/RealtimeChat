@@ -124,7 +124,7 @@ export const socketService = {
         if (socket) socket.emit('friend_request', { userId });
     },
 
-    emitFriendRequestResponse: (requestId, accepted) => {
+    emitFriendRequestResponse: (requestId, accepted ) => {
         if (socket) socket.emit('friend_request_response', { requestId, accepted });
     },
 
